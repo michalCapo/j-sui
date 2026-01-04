@@ -17,6 +17,9 @@ mvn test -Dtest=ClassName
 # Run single test method
 mvn test -Dtest=ClassName#methodName
 
+# Install Playwright browsers (for browser tests)
+mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install"
+
 # Package JAR
 mvn package
 
@@ -24,18 +27,12 @@ mvn package
 mvn clean compile
 ```
 
-**Quick start (without Maven)**:
-```bash
-javac -d target/classes $(find src/main/java -name "*.java")
-java -cp target/classes jsui.examples.Main
-```
-
 ## Code Style Guidelines
 
-### Imports
+### Imports & Formatting
 - Group imports: java.* first, then third-party, then project imports (jsui.*)
-- Use wildcard imports judiciously (standard library OK, minimize for third-party)
 - Blank line between import groups
+- Use wildcard imports judiciously (standard library OK, minimize for third-party)
 
 ### Class Design
 - Use `final` for immutable classes (App, Server, Ui, Data, Context)
@@ -54,7 +51,7 @@ java -cp target/classes jsui.examples.Main
 ### Type Safety & Generics
 - Use generics for reusable components: `CollateModel<T>`, `LoadResult<T>`
 - Type parameters: Single uppercase letter `T`, `R`, `E`
-- Wildcards sparingly; prefer bounded types when possible
+- Prefer bounded types over wildcards
 
 ### Error Handling
 - Log exceptions with debug mode: `if (debugEnabled) System.out.println()`
@@ -107,23 +104,19 @@ java -cp target/classes jsui.examples.Main
 - Patch format: `{"type":"patch","id":"<id>","swap":"<mode>","html":"<html>"}`
 - Ping/pong for keepalive
 
-### Testing (JUnit 5)
-- Test classes in `src/test/java`
-- Use `@Test` annotations
-- Playwright for browser tests if needed
-
 ### Lombok Usage
 - `@Data`: getters, setters, equals, hashCode, toString
 - `@NoArgsConstructor`: no-arg constructor
 - `@Accessors(chain = true, fluent = false)`: enable chaining with . setters
 - Scope: `provided` for compile-time generation
 
-## Dependencies (pom.xml)
+## Dependencies
 - Java 21 (maven.compiler.release)
 - Lombok 1.18.30 (provided scope)
 - JUnit Jupiter 5.11.4 (test scope)
 - Playwright 1.49.0 (browser testing)
 - Apache POI 5.2.5 (Excel export)
+- Jakarta Bean Validation 3.0.2
 
 ## Key Patterns
 
@@ -131,7 +124,6 @@ java -cp target/classes jsui.examples.Main
 ```java
 app.Page("/path", ctx -> {
     String action = ctx.Call(c -> {
-        // Logic here
         return Ui.div("").render("Updated");
     }).Replace(targetAttr);
     return body + action;
@@ -147,7 +139,7 @@ ctx.Patch(t.Render, "<div>Content</div>"); // or .Replace/.Append/.Prepend
 ### Form Binding
 ```java
 FormData data = new FormData();
-ctx.Body(data); // Populates fields from POST body
+ctx.Body(data);
 ```
 
 ### Async Operations
@@ -158,7 +150,6 @@ ctx.Delay(target, delay, job);  // Run once after N milliseconds
 ```
 
 ## Code Structure
-
 - `jsui.App`: Page composition, HTML head, session management, routing
 - `jsui.Context`: Request context, form binding, action builders, patching
 - `jsui.Ui`: HTML builders, form controls, targets, utilities
@@ -167,7 +158,6 @@ ctx.Delay(target, delay, job);  // Run once after N milliseconds
 - `jsui.HtmlUtils`: Escaping utilities
 
 ## Notes
-
 - No external server framework (uses Java SE sockets)
 - Tailwind CSS via CDN (configurable)
 - WebSocket for real-time patches with inline fallback
