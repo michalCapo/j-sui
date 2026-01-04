@@ -112,7 +112,12 @@ public final class App {
                                     try{
                                         var opts={method:'POST'};
                                         if(as==='FORM'){
-                                            var f=e&&e.target? (e.target.closest&&e.target.closest('form'))||e.target : null;
+                                            var f=null;
+                                            if(e&&e.target){
+                                                if(e.target.tagName==='FORM'){f=e.target;}
+                                                else if(e.target.closest&&e.target.closest('form')){f=e.target.closest('form');}
+                                                else if(e.submitter&&e.submitter.form){f=e.submitter.form;}
+                                            }
                                             if(!f||f.tagName!=='FORM'){return false;}
                                             var fd=new FormData(f);
                                             var pairs=[];

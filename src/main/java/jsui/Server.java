@@ -127,7 +127,7 @@ public final class Server implements AutoCloseable {
                     function hide(){var el=document.getElementById(bannerId);if(el){el.style.display='none';}}\
                     function markSeen(id){try{window.__jsuiSeen=window.__jsuiSeen||{};window.__jsuiSeen[id]=true;}catch(_){}}\
                     function wasSeen(id){try{return !!(window.__jsuiSeen&&window.__jsuiSeen[id]);}catch(_){return false;}}\
-                    function handlePatch(msg){try{var id=String(msg.id||'');var el=document.getElementById(id);if(!el){if(wasSeen(id)){try{ws&&ws.readyState===1&&ws.send(JSON.stringify({type:'invalid',id:id}));}catch(_){}}return;\
+                    function handlePatch(msg){try{var id=String(msg.id||'');var el=document.getElementById(id);if(!el){if(wasSeen(id)){try{ws&&ws.readyState===1&&ws.send(JSON.stringify({type:'invalid',id:id}));}catch(_){}}return;}\
                     markSeen(id);var html=String(msg.html||'');try{var tpl=document.createElement('template');tpl.innerHTML=html;var scripts=tpl.content.querySelectorAll('script');\
                     for(var i=0;i<scripts.length;i++){var s=document.createElement('script');s.textContent=scripts[i].textContent;document.body.appendChild(s);} }catch(_){ }\
                     if(msg.swap==='outline'){el.outerHTML=html;}else if(msg.swap==='append'){el.insertAdjacentHTML('beforeend',html);}else if(msg.swap==='prepend'){el.insertAdjacentHTML('afterbegin',html);}\
