@@ -20,11 +20,20 @@ mvn test -Dtest=ClassName#methodName
 # Install Playwright browsers (for browser tests)
 mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install"
 
+# Run the application (Main.java)
+mvn exec:java
+
 # Package JAR
 mvn package
 
 # Clean build
 mvn clean compile
+
+# Build native image with GraalVM
+mvn clean native:compile
+
+# Run native executable (after building)
+./target/j-sui
 ```
 
 ## Code Style Guidelines

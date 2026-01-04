@@ -420,20 +420,22 @@ public final class Ui {
                 <button id="%s" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 \
                 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 shadow-sm %s">\
                 <span class="icon">%s</span>\
-                <span class="label">Auto</span></button>""".formatted(id, cssClasses, desktop);
+                <span class="label">Auto</span></button>"""
+                .formatted(id, cssClasses, desktop);
 
         String script = """
                 <script>(function(){var btn=document.getElementById("%s"); if(!btn) return;\
                 var modes=["system","light","dark"]; function getPref(){ try { return localStorage.getItem("theme")||"system"; } catch(_) { return "system"; } }\
-                function resolve(mode){ if(mode==="system"){ try { return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"; } catch(_) { return "light"; } } return mode; }\
+                function resolve(mode){ if(mode==="system"){ try { return (window.matchMedia && window.matchMedia("(prefers-color-scheme: %%d)").matches)?"dark":"light"; } catch(_) { return "light"; } } return mode; }\
                 function setMode(mode){ try { if (typeof setTheme === "function") setTheme(mode); } catch(_){} }\
                 function labelFor(mode){ return mode==="system"?"Auto":(mode.charAt(0).toUpperCase()+mode.slice(1)); }\
                 function iconFor(effective){ if(effective==="dark"){ return `%s`; } if(effective==="light"){ return `%s`; } return `%s`; }\
                 function render(){ var pref=getPref(); var eff=resolve(pref); var icon=iconFor(eff); var i=btn.querySelector(".icon"); if(i){ i.innerHTML=icon; } var l=btn.querySelector(".label"); if(l){ l.textContent=labelFor(pref); } }\
                 render();\
-                btn.addEventListener("click", function(){ var pref=getPref(); var idx=modes.indexOf(pref); var next=modes[(idx+1)%modes.length]; setMode(next); render(); });\
-                try { if (window.matchMedia){ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(){ if(getPref()==="system"){ render(); } }); } } catch(_){ }\
-                })();</script>""".formatted(id, moon, sun, desktop);
+                btn.addEventListener("click", function(){ var pref=getPref(); var idx=modes.indexOf(pref); var next=modes[(idx+1)%%modes.length]; setMode(next); render(); });\
+                try { if (window.matchMedia){ window.matchMedia("(prefers-color-scheme: %%d)").addEventListener("change", function(){ if(getPref()==="system"){ render(); } }); } } catch(_){ }\
+                })();</script>"""
+                .formatted(id, moon, sun, desktop);
 
         return btn + script;
     }
@@ -471,7 +473,8 @@ public final class Ui {
                 else{loaded.ready(function(){loaded.render('%s',{sitekey:'%s',callback:function(){requestAnimationFrame(function(){captcha.style.visibility='hidden';hidden.classList.remove('opacity-0');hidden.classList.remove('pointer-events-none');});},\
                 'expired-callback':function(){requestAnimationFrame(function(){captcha.style.visibility='visible';hidden.classList.add('opacity-0');hidden.classList.add('pointer-events-none');loaded.reset();});},\
                 'error-callback':function(){requestAnimationFrame(function(){captcha.style.visibility='visible';hidden.classList.add('opacity-0');hidden.classList.add('pointer-events-none');loaded.reset();});}});});}\
-                },300);""".formatted(noteId, captchaId, hiddenId, captchaId, siteKey);
+                },300);"""
+                .formatted(noteId, captchaId, hiddenId, captchaId, siteKey);
 
         return Normalize(div("").render(top, note) + Script(js));
     }
@@ -500,7 +503,8 @@ public final class Ui {
                 for(var j=0;j<20;j++){ctx.beginPath();ctx.arc(Math.random()*w,Math.random()*h,Math.random()*2,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fill();}}\
                 function validate(){if((input.value||'').toLowerCase()===captchaText.toLowerCase()){hidden.value='true';input.style.borderColor='green';}else{hidden.value='false';input.style.borderColor='red';}}\
                 input.addEventListener('input', validate);draw();window.addEventListener('resize', draw);\
-                },300);""".formatted(canvasId, inputId, hiddenId, escapedText);
+                },300);"""
+                .formatted(canvasId, inputId, hiddenId, escapedText);
 
         return div("",
                 Attr.of().style(
@@ -674,7 +678,8 @@ public final class Ui {
                     return resp.text();}).then(injectSuccess).catch(function(){injectSuccess(defaultSuccess);});}else{injectSuccess(defaultSuccess);}}\
                     else{if(hiddenField){hiddenField.value='false';}input.style.borderColor='red';}}\
                     if(input){input.addEventListener('input',validateCaptcha);}drawCaptcha();window.addEventListener('resize',drawCaptcha);},300);"""
-                    .formatted(rootId, canvasId, answerFieldName, hiddenFieldId, containerId, escapedText, escapedSuccessPath, escapedDefaultSuccess);
+                    .formatted(rootId, canvasId, answerFieldName, hiddenFieldId, containerId, escapedText,
+                            escapedSuccessPath, escapedDefaultSuccess);
 
             return root + Script(js);
         }
@@ -893,7 +898,8 @@ public final class Ui {
                     tile.setAttribute('aria-grabbed','false');tile.classList.remove('ring-2','ring-blue-300');}});\
                     tilesContainer.addEventListener('dragleave',function(event){var tile=event.target&&event.target.closest('[data-index]');if(tile){\
                     tile.classList.remove('ring-2','ring-blue-300');}});renderTarget();renderTiles();checkSolved();},250);"""
-                    .formatted(rootId, tilesId, targetId, arrangementFieldId, clientFlagId, escapedText, escapedScrambled, escapedSuccessPath, escapedDefaultSuccess);
+                    .formatted(rootId, tilesId, targetId, arrangementFieldId, clientFlagId, escapedText,
+                            escapedScrambled, escapedSuccessPath, escapedDefaultSuccess);
 
             return root + Script(js);
         }
@@ -1142,7 +1148,17 @@ public final class Ui {
         return closed("input", css, attrs);
     }
 
-    public static final class TagBuilder {
+    @FunctionalInterface
+    public interface TagRenderer {
+        String render(String... children);
+    }
+
+    @FunctionalInterface
+    public interface TagFunction {
+        String apply(String... children);
+    }
+
+    public static final class TagBuilder implements TagRenderer, TagFunction {
         private final String tag;
         private final List<Attr> attrs;
 
@@ -1151,7 +1167,13 @@ public final class Ui {
             this.attrs = collectAttrs(css, extras);
         }
 
+        @Override
         public String render(String... children) {
+            return apply(children);
+        }
+
+        @Override
+        public String apply(String... children) {
             String attrString = attributes(attrs);
             StringBuilder sb = new StringBuilder();
             sb.append("<").append(tag);

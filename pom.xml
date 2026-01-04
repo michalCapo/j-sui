@@ -68,6 +68,35 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0</version>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>jsui.examples.Main</mainClass>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <version>0.10.3</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <mainClass>jsui.examples.Main</mainClass>
+                    <imageName>j-sui</imageName>
+                    <buildArgs>
+                        <buildArg>--no-fallback</buildArg>
+                        <buildArg>--enable-preview</buildArg>
+                        <buildArg>-H:+AllowDeprecatedBuilderClassesOnImageClasspath</buildArg>
+                        <buildArg>-H:IncludeResources=.*\.(js|html|css|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$</buildArg>
+                        <buildArg>--enable-all-security-services</buildArg>
+                        <buildArg>--enable-url-protocols=http,https</buildArg>
+                        <buildArg>--initialize-at-run-time=jsui</buildArg>
+                        <buildArg>--report-unsupported-elements-at-runtime</buildArg>
+                        <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                    </buildArgs>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
