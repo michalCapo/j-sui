@@ -1,4 +1,12 @@
 .vscode/
 .cursor/
+.claude/
+.settings/
 build/
 target/
+
+# Eclipse IDE files
+.classpath
+.factorypath
+.project
+.settings/

@@ -11,10 +11,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Java skeleton of t-sui/ui.server.ts Context with attribute-generating helpers.
+ * Java skeleton of t-sui/ui.server.ts Context with attribute-generating
+ * helpers.
  *
  * For server integration, wire this to your HTTP handling and evaluate
- * callables manually. The client-side JS helpers referenced here are placeholders.
+ * callables manually. The client-side JS helpers referenced here are
+ * placeholders.
  */
 public final class Context {
     public final App app;
@@ -37,7 +39,8 @@ public final class Context {
         this(app, sessionID, method, path, headers, body, Collections.emptyMap(), "", null);
     }
 
-    public Context(App app, String sessionID, String method, String path, Map<String, String> headers, byte[] body, Map<String, String> query, String queryString, PatchSender patchSender) {
+    public Context(App app, String sessionID, String method, String path, Map<String, String> headers, byte[] body,
+            Map<String, String> query, String queryString, PatchSender patchSender) {
         this.app = app;
         this.sessionID = sessionID != null ? sessionID : "";
         this.method = method != null ? method : "GET";
@@ -50,7 +53,6 @@ public final class Context {
         this.pageGeneration = app != null ? app.currentSessionGeneration(this.sessionID) : 0L;
     }
 
-    // Populate a POJO from request body (supports form posts)
     public <T> void Body(T output) {
         if (output == null) {
             return;
@@ -82,18 +84,27 @@ public final class Context {
         return headers.get(name.toLowerCase());
     }
 
-    public String query(String key) { return query.get(key); }
+    public String query(String key) {
+        return query.get(key);
+    }
 
-    public Callable Callable(Callable method) { return app.Callable(method); }
-    public Callable Action(String uid, Callable action) { return app.Action(uid, action); }
+    public Callable Callable(Callable method) {
+        return app.Callable(method);
+    }
 
-    // Compose client-side submit/post handlers (placeholder JS strings)
+    public Callable Action(String uid, Callable action) {
+        return app.Action(uid, action);
+    }
+
     public String Post(String as, Ui.Swap swap, Action action) {
         String path = app.pathOf(action.method);
-        if (path == null || path.isEmpty()) path = "/__not_registered";
+        if (path == null || path.isEmpty())
+            path = "/__not_registered";
         String tgt = action.target != null ? action.target.id : "";
-        // lightweight noop-friendly script hook
-        String js = "(function(e){try{if(window.__post){return __post('" + (as!=null?as:"") + "','" + path + "','" + swap + "','" + tgt + "',e);} }catch(_){ } return false;})(event)";
+        String normalizedAs = as != null ? as : "";
+        String js = """
+                (function(e){try{if(window.__post){return __post('%s','%s','%s','%s',e);} }catch(_){ } return false;})(event)"""
+                .formatted(normalizedAs, path, swap, tgt);
         return Ui.Normalize(js);
     }
 
@@ -101,11 +112,30 @@ public final class Context {
         final Callable callable = this.Callable(method);
         final Context self = this;
         return new CallBuilder() {
-            @Override public String Render(Ui.Attr target) { return self.Post("POST", Ui.Swap.inline, new Action(callable, target, values)); }
-            @Override public String Replace(Ui.Attr target) { return self.Post("POST", Ui.Swap.outline, new Action(callable, target, values)); }
-            @Override public String Append(Ui.Attr target) { return self.Post("POST", Ui.Swap.append, new Action(callable, target, values)); }
-            @Override public String Prepend(Ui.Attr target) { return self.Post("POST", Ui.Swap.prepend, new Action(callable, target, values)); }
-            @Override public String None() { return self.Post("POST", Ui.Swap.none, new Action(callable, null, values)); }
+            @Override
+            public String Render(Ui.Attr target) {
+                return self.Post("POST", Ui.Swap.inline, new Action(callable, target, values));
+            }
+
+            @Override
+            public String Replace(Ui.Attr target) {
+                return self.Post("POST", Ui.Swap.outline, new Action(callable, target, values));
+            }
+
+            @Override
+            public String Append(Ui.Attr target) {
+                return self.Post("POST", Ui.Swap.append, new Action(callable, target, values));
+            }
+
+            @Override
+            public String Prepend(Ui.Attr target) {
+                return self.Post("POST", Ui.Swap.prepend, new Action(callable, target, values));
+            }
+
+            @Override
+            public String None() {
+                return self.Post("POST", Ui.Swap.none, new Action(callable, null, values));
+            }
         };
     }
 
@@ -113,21 +143,48 @@ public final class Context {
         final Callable callable = this.Callable(method);
         final Context self = this;
         return new SubmitBuilder() {
-            @Override public Ui.Attr Render(Ui.Attr target) { return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.inline, new Action(callable, target, values))); }
-            @Override public Ui.Attr Replace(Ui.Attr target) { return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.outline, new Action(callable, target, values))); }
-            @Override public Ui.Attr Append(Ui.Attr target) { return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.append, new Action(callable, target, values))); }
-            @Override public Ui.Attr Prepend(Ui.Attr target) { return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.prepend, new Action(callable, target, values))); }
-            @Override public Ui.Attr None() { return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.none, new Action(callable, null, values))); }
+            @Override
+            public Ui.Attr Render(Ui.Attr target) {
+                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.inline, new Action(callable, target, values)));
+            }
+
+            @Override
+            public Ui.Attr Replace(Ui.Attr target) {
+                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.outline, new Action(callable, target, values)));
+            }
+
+            @Override
+            public Ui.Attr Append(Ui.Attr target) {
+                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.append, new Action(callable, target, values)));
+            }
+
+            @Override
+            public Ui.Attr Prepend(Ui.Attr target) {
+                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.prepend, new Action(callable, target, values)));
+            }
+
+            @Override
+            public Ui.Attr None() {
+                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.none, new Action(callable, null, values)));
+            }
         };
     }
 
-    public Ui.Attr Load(String href) { return Ui.Attr.of().onclick(Ui.Normalize("__load(\"" + href + "\")")); }
-    public String Reload() { return Ui.Normalize("<script>window.location.reload();</script>"); }
-    public String Redirect(String href) { return Ui.Normalize("<script>window.location.href='" + href + "';</script>"); }
+    public Ui.Attr Load(String href) {
+        return Ui.Attr.of().onclick(Ui.Normalize("__load(\"%s\")".formatted(href)));
+    }
 
-    // Translate message using simple java.text.MessageFormat ({0}, {1}, ...)
+    public String Reload() {
+        return Ui.Normalize("<script>window.location.reload();</script>");
+    }
+
+    public String Redirect(String href) {
+        return Ui.Normalize("<script>window.location.href='%s';</script>".formatted(href));
+    }
+
     public String Translate(String message, Object... val) {
-        if (message == null) return "";
+        if (message == null)
+            return "";
         try {
             return java.text.MessageFormat.format(message, val);
         } catch (IllegalArgumentException ex) {
@@ -135,26 +192,42 @@ public final class Context {
         }
     }
 
-    public void Success(String message) { append.add(messageBox(message, "bg-green-700 text-white")); }
-    public void Error(String message) { append.add(messageBox(message, "bg-red-700 text-white")); }
-    public void Info(String message) { append.add(messageBox(message, "bg-blue-700 text-white")); }
+    public void Success(String message) {
+        displayMessage(message, "bg-green-700 text-white");
+    }
+
+    public void Error(String message) {
+        displayMessage(message, "bg-red-700 text-white");
+    }
+
+    public void Info(String message) {
+        displayMessage(message, "bg-blue-700 text-white");
+    }
+
+    /**
+     * Shows an error toast with a Reload button.
+     */
+    public void ErrorReload(String message) {
+        displayError(message);
+    }
 
     public void Patch(Ui.Action target, String html) {
         Patch(target, html, null);
     }
 
     public void Patch(Ui.Action target, String html, Runnable clear) {
-        if (target == null || target.id == null || target.id.isEmpty() || html == null) return;
+        if (target == null || target.id == null || target.id.isEmpty() || html == null)
+            return;
         String swap = target.swap != null ? target.swap.name() : Ui.Swap.inline.name();
         if (clear != null && app != null) {
             app.registerClear(sessionID, target.id, clear);
         }
         if (patchSender != null) {
-            String json = "{\"type\":\"patch\",\"id\":\"" + Ui.Normalize(target.id) + "\",\"swap\":\"" + swap + "\",\"html\":\"" + Ui.Normalize(html) + "\"}";
+            String json = "{\"type\":\"patch\",\"id\":\"%s\",\"swap\":\"%s\",\"html\":\"%s\"}"
+                    .formatted(Ui.Normalize(target.id), swap, Ui.Normalize(html));
             try {
                 patchSender.send(sessionID, json);
             } catch (Exception ex) {
-                // fallback to inline script on failure
                 append.add(patchScriptInline(target.id, swap, html));
             }
         } else {
@@ -162,10 +235,13 @@ public final class Context {
         }
     }
 
-    public void Defer(Ui.Action target, Callable job) { Defer(target, job, null); }
+    public void Defer(Ui.Action target, Callable job) {
+        Defer(target, job, null);
+    }
 
     public void Defer(Ui.Action target, Callable job, Runnable clear) {
-        if (job == null || target == null) return;
+        if (job == null || target == null)
+            return;
         Thread t = new Thread(() -> {
             try {
                 String result = job.handle(this);
@@ -175,33 +251,43 @@ public final class Context {
                     }
                     Patch(target, result);
                 }
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+            }
         }, "jsui-defer");
-        // Register clear to interrupt the worker and run user cleanup
         if (app != null) {
             app.registerClear(sessionID, target.id, () -> {
-                try { t.interrupt(); } catch (Throwable ignored) { }
-                if (clear != null) { try { clear.run(); } catch (Throwable ignored) { } }
+                try {
+                    t.interrupt();
+                } catch (Throwable ignored) {
+                }
+                if (clear != null) {
+                    try {
+                        clear.run();
+                    } catch (Throwable ignored) {
+                    }
+                }
             });
         }
         t.start();
     }
 
-    // Repeat: periodically invoke job and patch the target with the returned HTML until cleared.
-    public void Repeat(Ui.Action target, long intervalMillis, Callable job) { Repeat(target, intervalMillis, job, null); }
+    public void Repeat(Ui.Action target, long intervalMillis, Callable job) {
+        Repeat(target, intervalMillis, job, null);
+    }
 
     public void Repeat(Ui.Action target, long intervalMillis, Callable job, Runnable clear) {
-        if (job == null || target == null) return;
+        if (job == null || target == null)
+            return;
         final long delay = Math.max(50L, intervalMillis);
         Thread t = new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    // Stop if user navigated (generation changed)
                     if (app != null && app.currentSessionGeneration(sessionID) != pageGeneration) {
                         break;
                     }
                     String html = job.handle(this);
-                    if (html != null) Patch(target, html);
+                    if (html != null)
+                        Patch(target, html);
                     Thread.sleep(delay);
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
@@ -212,28 +298,40 @@ public final class Context {
         }, "jsui-repeat");
         if (app != null) {
             app.registerClear(sessionID, target.id, () -> {
-                try { t.interrupt(); } catch (Throwable ignored) { }
-                if (clear != null) { try { clear.run(); } catch (Throwable ignored) { } }
+                try {
+                    t.interrupt();
+                } catch (Throwable ignored) {
+                }
+                if (clear != null) {
+                    try {
+                        clear.run();
+                    } catch (Throwable ignored) {
+                    }
+                }
             });
         }
         t.start();
     }
 
-    // Delay: run job once after a delay and patch the target; auto-clears if target becomes invalid
-    public void Delay(Ui.Action target, long delayMillis, Callable job) { Delay(target, delayMillis, job, null); }
+    public void Delay(Ui.Action target, long delayMillis, Callable job) {
+        Delay(target, delayMillis, job, null);
+    }
 
     public void Delay(Ui.Action target, long delayMillis, Callable job, Runnable clear) {
-        if (job == null || target == null) return;
+        if (job == null || target == null)
+            return;
         final long wait = Math.max(0L, delayMillis);
         Thread t = new Thread(() -> {
             try {
                 Thread.sleep(wait);
-                if (Thread.currentThread().isInterrupted()) return;
+                if (Thread.currentThread().isInterrupted())
+                    return;
                 if (app != null && app.currentSessionGeneration(sessionID) != pageGeneration) {
                     return;
                 }
                 String html = job.handle(this);
-                if (html != null) Patch(target, html);
+                if (html != null)
+                    Patch(target, html);
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
             } catch (Exception ignored) {
@@ -241,54 +339,106 @@ public final class Context {
         }, "jsui-delay");
         if (app != null) {
             app.registerClear(sessionID, target.id, () -> {
-                try { t.interrupt(); } catch (Throwable ignored) { }
-                if (clear != null) { try { clear.run(); } catch (Throwable ignored) { } }
+                try {
+                    t.interrupt();
+                } catch (Throwable ignored) {
+                }
+                if (clear != null) {
+                    try {
+                        clear.run();
+                    } catch (Throwable ignored) {
+                    }
+                }
             });
         }
         t.start();
     }
 
-    // Trigger a client-side download using a data: URL; appends a script to the response.
     public void DownloadAs(InputStream stream, String contentType, String name) throws IOException {
-        if (stream == null) return;
+        if (stream == null)
+            return;
         try (java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream()) {
             byte[] tmp = new byte[8192];
             int r;
-            while ((r = stream.read(tmp)) != -1) buf.write(tmp, 0, r);
+            while ((r = stream.read(tmp)) != -1)
+                buf.write(tmp, 0, r);
             DownloadAs(buf.toByteArray(), contentType, name);
         }
     }
 
     public void DownloadAs(byte[] content, String contentType, String name) {
-        if (content == null) return;
+        if (content == null)
+            return;
         String ct = (contentType == null || contentType.isEmpty()) ? "application/octet-stream" : contentType;
         String filename = (name == null || name.isEmpty()) ? "download" : name;
         String base64 = java.util.Base64.getEncoder().encodeToString(content);
         String href = "data:" + ct + ";base64," + base64;
-        String js = "(function(){var a=document.createElement('a');a.href='" + Ui.Normalize(href) +
-                "';a.download='" + Ui.Normalize(filename) + "';document.body.appendChild(a);a.click();setTimeout(function(){try{document.body.removeChild(a);}catch(_){}} ,0);} )();";
+        String normalizedHref = Ui.Normalize(href);
+        String normalizedFilename = Ui.Normalize(filename);
+        String js = """
+                (function(){var a=document.createElement('a');a.href='%s';a.download='%s';document.body.appendChild(a);a.click();\
+                setTimeout(function(){try{document.body.removeChild(a);}catch(_){}} ,0);} )();""".formatted(normalizedHref, normalizedFilename);
         append.add(Ui.Script(js));
     }
 
     private String patchScriptInline(String id, String swap, String html) {
         String safe = Ui.Normalize(html);
-        String s = "(function(){var el=document.getElementById('" + Ui.Normalize(id) + "'); if(!el) return;" +
-                "var h=\"" + safe + "\";" +
-                "switch('" + swap + "'){" +
-                "case 'outline': el.outerHTML=h; break;" +
-                "case 'append': el.insertAdjacentHTML('beforeend', h); break;" +
-                "case 'prepend': el.insertAdjacentHTML('afterbegin', h); break;" +
-                "default: el.innerHTML=h; } })();";
+        String normalizedId = Ui.Normalize(id);
+        String s = """
+                (function(){var el=document.getElementById('%s'); if(!el) return;var h="%s";switch('%s'){\
+                case 'outline': el.outerHTML=h; break;\
+                case 'append': el.insertAdjacentHTML('beforeend', h); break;\
+                case 'prepend': el.insertAdjacentHTML('afterbegin', h); break;\
+                default: el.innerHTML=h; } })();""".formatted(normalizedId, safe, swap);
         return Ui.Script(s);
     }
 
-    // Sender used by Server to deliver patches to a session (via WS)
-    public interface PatchSender { void send(String sessionId, String message) throws Exception; }
+    public interface PatchSender {
+        void send(String sessionId, String message) throws Exception;
+    }
 
-    private String messageBox(String message, String color) {
-        String id = "__messages__";
-        String inner = Ui.div("rounded px-3 py-2 shadow " + color).render(Ui.span("").render(message));
-        return Ui.Normalize(Ui.div("fixed bottom-4 right-4 z-50", Ui.Attr.of().id(id)).render(inner));
+    private void displayMessage(String message, String color) {
+        String escapedMessage = escapeJs(message != null ? message : "");
+        String escapedColor = escapeJs(color != null ? color : "");
+        String script = Ui.Script("""
+                (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
+                box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
+                var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
+                n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\
+                n.style.boxShadow='0 6px 18px rgba(0,0,0,0.08)';n.style.border='1px solid';var C=%s;\
+                var isGreen=C.indexOf('green')>=0;var isRed=C.indexOf('red')>=0;var accent=isGreen?'#16a34a':(isRed?'#dc2626':'#4f46e5');\
+                if(isGreen){n.style.background='#dcfce7';n.style.color='#166534';n.style.borderColor='#bbf7d0';}\
+                else if(isRed){n.style.background='#fee2e2';n.style.color='#991b1b';n.style.borderColor='#fecaca';}\
+                else{n.style.background='#eef2ff';n.style.color='#3730a3';n.style.borderColor='#e0e7ff';}\
+                n.style.borderLeft='4px solid '+accent;var dot=document.createElement('span');dot.style.width='10px';dot.style.height='10px';\
+                dot.style.borderRadius='9999px';dot.style.background=accent;var t=document.createElement('span');t.textContent=%s;\
+                n.appendChild(dot);n.appendChild(t);box.appendChild(n);setTimeout(function(){try{box.removeChild(n);}catch(_){}},5000);}catch(_){}})();"""
+                .formatted(escapedColor, escapedMessage));
+        append.add(script);
+    }
+
+    private void displayError(String message) {
+        String escapedMessage = escapeJs(message != null ? message : "");
+        String script = Ui.Script("""
+                (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
+                box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
+                var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
+                n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\
+                n.style.background='#fee2e2';n.style.color='#991b1b';n.style.border='1px solid #fecaca';n.style.borderLeft='4px solid #dc2626';\
+                n.style.boxShadow='0 6px 18px rgba(0,0,0,0.08)';n.style.fontWeight='600';n.style.pointerEvents='auto';\
+                var dot=document.createElement('span');dot.style.width='10px';dot.style.height='10px';dot.style.borderRadius='9999px';dot.style.background='#dc2626';\
+                var t=document.createElement('span');t.textContent=%s;\
+                var btn=document.createElement('button');btn.textContent='Reload';btn.style.background='#991b1b';btn.style.color='#fff';\
+                btn.style.border='none';btn.style.padding='6px 10px';btn.style.borderRadius='8px';btn.style.cursor='pointer';btn.style.fontWeight='700';\
+                btn.onclick=function(){try{window.location.reload();}catch(_){}};n.appendChild(dot);n.appendChild(t);n.appendChild(btn);box.appendChild(n);\
+                setTimeout(function(){try{if(n&&n.parentNode){n.parentNode.removeChild(n);}}catch(_){}},88000);}catch(_){}})();""".formatted(escapedMessage));
+        append.add(script);
+    }
+
+    private String escapeJs(String s) {
+        if (s == null)
+            return "\"\"";
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\"";
     }
 
     private Map<String, List<String>> parseForm(String raw) {
@@ -367,7 +517,6 @@ public final class Context {
                 field.set(current, last);
             }
         } catch (IllegalAccessException ex) {
-            // ignore assignment errors
         }
     }
 
@@ -413,7 +562,8 @@ public final class Context {
             return false;
         }
         String normalized = value.trim().toLowerCase();
-        return normalized.equals("true") || normalized.equals("1") || normalized.equals("on") || normalized.equals("yes");
+        return normalized.equals("true") || normalized.equals("1") || normalized.equals("on")
+                || normalized.equals("yes");
     }
 
     private int parseInt(String value) {
@@ -441,21 +591,31 @@ public final class Context {
     }
 
     // Types ------------------------------------------------------------------
-    public interface Callable { String handle(Context ctx) throws Exception; }
+    public interface Callable {
+        String handle(Context ctx) throws Exception;
+    }
 
     public interface CallBuilder {
         String Render(Ui.Attr target);
+
         String Replace(Ui.Attr target);
+
         String Append(Ui.Attr target);
+
         String Prepend(Ui.Attr target);
+
         String None();
     }
 
     public interface SubmitBuilder {
         Ui.Attr Render(Ui.Attr target);
+
         Ui.Attr Replace(Ui.Attr target);
+
         Ui.Attr Append(Ui.Attr target);
+
         Ui.Attr Prepend(Ui.Attr target);
+
         Ui.Attr None();
     }
 
@@ -463,8 +623,11 @@ public final class Context {
         public final Callable method;
         public final Ui.Attr target;
         public final Object[] values;
+
         public Action(Callable method, Ui.Attr target, Object... values) {
-            this.method = method; this.target = target; this.values = values;
+            this.method = method;
+            this.target = target;
+            this.values = values;
         }
     }
 }

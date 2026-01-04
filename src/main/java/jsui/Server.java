@@ -32,7 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Minimal HTTP and WebSocket server built with Java SE networking primitives.
+ * Minimal HTTP server built with Java SE networking primitives.
  *
  * Designed to serve the {@link App} HTML output and evaluate registered
  * {@link Context.Callable} actions without relying on third-party libraries.
@@ -43,12 +43,10 @@ public final class Server implements AutoCloseable {
 
     private final App app;
     private final HttpService httpService;
-    private final WebSocketService webSocketService;
 
-    private Server(App app, HttpService httpService, WebSocketService webSocketService) {
+    private Server(App app, HttpService httpService) {
         this.app = app;
         this.httpService = httpService;
-        this.webSocketService = webSocketService;
     }
 
     /**
@@ -58,26 +56,14 @@ public final class Server implements AutoCloseable {
         return new Builder(app);
     }
 
-    /** Starts the HTTP (and optional WebSocket) services. */
+    /** Starts the HTTP service. */
     public void start() {
         httpService.start();
-        if (webSocketService != null)
-            webSocketService.start();
     }
 
     /** Blocks the calling thread until the server is shut down. */
     public void join() throws InterruptedException {
-        if (webSocketService != null) {
-            webSocketService.join();
-        }
         httpService.join();
-    }
-
-    /** Broadcasts a text frame to all connected WebSocket clients if enabled. */
-    public void broadcast(String message) throws IOException {
-        if (webSocketService != null) {
-            webSocketService.broadcast(message);
-        }
     }
 
     public App app() {
@@ -88,30 +74,9 @@ public final class Server implements AutoCloseable {
         return httpService.port();
     }
 
-    public Integer websocketPort() {
-        return webSocketService != null ? webSocketService.port() : null;
-    }
-
     @Override
     public void close() throws IOException {
-        IOException error = null;
-        try {
-            httpService.close();
-        } catch (IOException ex) {
-            error = ex;
-        }
-        if (webSocketService != null) {
-            try {
-                webSocketService.close();
-            } catch (IOException ex) {
-                if (error == null) {
-                    error = ex;
-                }
-            }
-        }
-        if (error != null) {
-            throw error;
-        }
+        httpService.close();
     }
 
     // ---------------------------------------------------------------------
@@ -122,9 +87,6 @@ public final class Server implements AutoCloseable {
         private int httpPort = 8080;
         private int httpBacklog = 50;
         private String httpHost = "0.0.0.0";
-        private boolean enableWebSocket = true;
-        private WebSocketListener wsListener = WebSocketListener.noop();
-        private Integer websocketPort = null; // if null, defaults to httpPort+1
 
         private Duration shutdownTimeout = Duration.ofSeconds(5);
 
@@ -152,60 +114,35 @@ public final class Server implements AutoCloseable {
             return this;
         }
 
-        /** Enable or disable WebSocket support. */
-        public Builder enableWebSocket(boolean enable) {
-            this.enableWebSocket = enable;
-            return this;
-        }
-
-        /** Set the port for the WebSocket server. Defaults to httpPort+1. */
-        public Builder websocketPort(int port) {
-            this.websocketPort = port;
-            return this;
-        }
-
-        /** Provide a listener for WebSocket events. */
-        public Builder websocketListener(WebSocketListener listener) {
-            this.wsListener = listener != null ? listener : WebSocketListener.noop();
-            return this;
-        }
-
         /** Builds and starts the server. */
         public Server start() throws IOException {
-            // Use a single HTTP port for both HTTP and WebSocket (upgrade handled in
-            // HttpService)
             HttpService http = new HttpService(app, new InetSocketAddress(httpHost, httpPort), httpBacklog,
                     shutdownTimeout);
-            if (enableWebSocket) {
-                // Route Context.Patch messages through HttpService's session map
-                http.setPatchSender((sessionId, message) -> http.sendToSession(sessionId, message));
-                // Client boot script: connect WS to the same host:port as the page
-                final String wsBoot = "(function(){try{" +
-                        "var url=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/';" +
-                        "var bannerId='jsui_offline_banner';" +
-                        "function show(){var el=document.getElementById(bannerId);if(!el){el=document.createElement('div');el.id=bannerId;el.className='fixed top-3 left-3 z-50';el.innerHTML='<div class\\\"px-4 py-2 rounded-full bg-red-500 text-white shadow-lg ring-1 ring-white/20 backdrop-blur flex items-center gap-3\\\"><span class\\\"font-bold\\\">Offline</span><span class\\\"opacity-90\\\">Trying to reconnect…</span></div>';document.body.appendChild(el);}else{el.style.display='';}}"
-                        +
-                        "function hide(){var el=document.getElementById(bannerId);if(el){el.style.display='none';}}" +
-                        "function markSeen(id){try{window.__jsuiSeen=window.__jsuiSeen||{};window.__jsuiSeen[id]=true;}catch(_){}}"
-                        +
-                        "function wasSeen(id){try{return !!(window.__jsuiSeen&&window.__jsuiSeen[id]);}catch(_){return false;}}"
-                        +
-                        "function handlePatch(msg){try{var id=String(msg.id||'');var el=document.getElementById(id);if(!el){if(wasSeen(id)){try{ws&&ws.readyState===1&&ws.send(JSON.stringify({type:'invalid',id:id}));}catch(_){}}return;}markSeen(id);var html=String(msg.html||'');try{var tpl=document.createElement('template');tpl.innerHTML=html;var scripts=tpl.content.querySelectorAll('script');for(var i=0;i<scripts.length;i++){var s=document.createElement('script');s.textContent=scripts[i].textContent;document.body.appendChild(s);} }catch(_){ } if(msg.swap==='outline'){el.outerHTML=html;}else if(msg.swap==='append'){el.insertAdjacentHTML('beforeend',html);}else if(msg.swap==='prepend'){el.insertAdjacentHTML('afterbegin',html);}else{el.innerHTML=html;}}catch(_){}}"
-                        +
-                        "function connect(d){setTimeout(function(){ws=new WebSocket(url);ws.onopen=function(){hide();try{ws.send(JSON.stringify({type:'ping'}));}catch(_){}};ws.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m.type==='patch'){handlePatch(m);}else if(m.type==='ping'){try{ws.send(JSON.stringify({type:'pong'}));}catch(_){}}}catch(_){}};ws.onerror=function(){try{ws.close();}catch(_){}};ws.onclose=function(){show();connect(Math.min((d||250)*2,5000));};},d||0);} var ws; if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){connect(0);});}else{connect(0);}"
-                        +
-                        "}catch(_){}})();";
-                app.HTMLHead.add("<script>" + wsBoot + "</script>");
-            }
-            // Construct Server with no separate WS service
-            Server server = new Server(app, http, null);
+            http.setPatchSender((sessionId, message) -> http.sendToSession(sessionId, message));
+            final String wsBoot = """
+                    (function(){try{var url=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/';var bannerId='jsui_offline_banner';\
+                    function show(){var el=document.getElementById(bannerId);if(!el){el=document.createElement('div');el.id=bannerId;el.className='fixed top-3 left-3 z-50';\
+                    el.innerHTML='<div class\\"px-4 py-2 rounded-full bg-red-500 text-white shadow-lg ring-1 ring-white/20 backdrop-blur flex items-center gap-3\\"><span class\\"font-bold\\">Offline</span>\
+                    <span class\\"opacity-90\\">Trying to reconnect…</span></div>';document.body.appendChild(el);}else{el.style.display='';}}\
+                    function hide(){var el=document.getElementById(bannerId);if(el){el.style.display='none';}}\
+                    function markSeen(id){try{window.__jsuiSeen=window.__jsuiSeen||{};window.__jsuiSeen[id]=true;}catch(_){}}\
+                    function wasSeen(id){try{return !!(window.__jsuiSeen&&window.__jsuiSeen[id]);}catch(_){return false;}}\
+                    function handlePatch(msg){try{var id=String(msg.id||'');var el=document.getElementById(id);if(!el){if(wasSeen(id)){try{ws&&ws.readyState===1&&ws.send(JSON.stringify({type:'invalid',id:id}));}catch(_){}}return;\
+                    markSeen(id);var html=String(msg.html||'');try{var tpl=document.createElement('template');tpl.innerHTML=html;var scripts=tpl.content.querySelectorAll('script');\
+                    for(var i=0;i<scripts.length;i++){var s=document.createElement('script');s.textContent=scripts[i].textContent;document.body.appendChild(s);} }catch(_){ }\
+                    if(msg.swap==='outline'){el.outerHTML=html;}else if(msg.swap==='append'){el.insertAdjacentHTML('beforeend',html);}else if(msg.swap==='prepend'){el.insertAdjacentHTML('afterbegin',html);}\
+                    else{el.innerHTML=html;}}catch(_){}}\
+                    function connect(d){setTimeout(function(){ws=new WebSocket(url);ws.onopen=function(){hide();try{ws.send(JSON.stringify({type:'ping'}));}catch(_){}};\
+                    ws.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m.type==='patch'){handlePatch(m);}else if(m.type==='ping'){try{ws.send(JSON.stringify({type:'pong'}));}catch(_){}}}catch(_){}};\
+                    ws.onerror=function(){try{ws.close();}catch(_){}};ws.onclose=function(){show();connect(Math.min((d||250)*2,5000));};},d||0);}\
+                    var ws; if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){connect(0);});}else{connect(0);}\
+                    }catch(_){}})();""";
+            app.HTMLHead.add("<script>" + wsBoot + "</script>");
+            Server server = new Server(app, http);
             server.start();
             return server;
         }
     }
-
-    // ---------------------------------------------------------------------
-    // HTTP implementation
 
     private static final class HttpService implements Closeable {
         private final App app;
@@ -294,9 +231,8 @@ public final class Server implements AutoCloseable {
             try (Socket autoClose = socket) {
                 socket.setTcpNoDelay(true);
                 InputStream rawIn = socket.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(rawIn, StandardCharsets.UTF_8));
                 OutputStream rawOut = socket.getOutputStream();
-                String requestLine = reader.readLine();
+                String requestLine = readLine(rawIn);
                 if (requestLine == null || requestLine.isEmpty()) {
                     sendPlain(rawOut, 400, "Bad Request", "missing request line", null, false);
                     return;
@@ -314,9 +250,8 @@ public final class Server implements AutoCloseable {
                     queryString = path.substring(queryIndex + 1);
                     path = path.substring(0, queryIndex);
                 }
-                Map<String, String> headers = readHeaders(reader);
+                Map<String, String> headers = readHeaders(rawIn);
 
-                // Same-port WebSocket upgrade
                 String upgrade = headers.getOrDefault("upgrade", "");
                 if ("websocket".equalsIgnoreCase(upgrade)) {
                     handleWebSocket(socket, headers, rawIn);
@@ -332,7 +267,6 @@ public final class Server implements AutoCloseable {
                 }
 
                 if ("GET".equals(method)) {
-                    // Serve classpath assets if configured and path matches a mount
                     try {
                         App.ResolvedAsset asset = app.resolveAsset(path);
                         if (asset != null) {
@@ -341,12 +275,10 @@ public final class Server implements AutoCloseable {
                         }
                     } catch (Exception ignore) {
                     }
-                    // Clear background workers from previous navigations before starting a new page
                     try {
                         app.ClearSessionTargets(session.sessionId);
                     } catch (Throwable ignore) {
                     }
-                    // Bump navigation generation so old Repeat threads can self-terminate
                     try {
                         app.bumpSessionGeneration(session.sessionId);
                     } catch (Throwable ignore) {
@@ -406,7 +338,10 @@ public final class Server implements AutoCloseable {
 
                 sendPlain(rawOut, 404, "Not Found", "path not found", session, session.newSession);
             } catch (IOException ex) {
-                ex.printStackTrace();
+                String msg = ex.getMessage();
+                if (msg == null || (!msg.contains("Broken pipe") && !msg.contains("Connection reset"))) {
+                    ex.printStackTrace();
+                }
             }
         }
 
@@ -482,15 +417,15 @@ public final class Server implements AutoCloseable {
                             payload[i] = (byte) (payload[i] ^ maskKey[i % 4]);
                         }
                     }
-                    if (opcode == 0x8) { // close
+                    if (opcode == 0x8) {
                         connection.close();
                         break;
                     }
-                    if (opcode == 0x9) { // ping -> pong
+                    if (opcode == 0x9) {
                         connection.sendControl(0xA, payload);
                         continue;
                     }
-                    if (opcode == 0x1) { // text
+                    if (opcode == 0x1) {
                         String text = new String(payload, StandardCharsets.UTF_8);
                         try {
                             String msg = text != null ? text : "";
@@ -520,7 +455,6 @@ public final class Server implements AutoCloseable {
                     }
                 }
             } catch (IOException ex) {
-                // ignore
             } finally {
                 wsConnections.remove(connection);
                 for (Set<WebSocketConnection> set : wsBySession.values()) {
@@ -567,10 +501,24 @@ public final class Server implements AutoCloseable {
             }
         }
 
-        private Map<String, String> readHeaders(BufferedReader reader) throws IOException {
+        private String readLine(InputStream in) throws IOException {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            int b;
+            while ((b = in.read()) != -1) {
+                if (b == '\n')
+                    break;
+                if (b != '\r')
+                    bos.write(b);
+            }
+            if (b == -1 && bos.size() == 0)
+                return null;
+            return bos.toString(StandardCharsets.UTF_8);
+        }
+
+        private Map<String, String> readHeaders(InputStream in) throws IOException {
             Map<String, String> headers = new HashMap<>();
             String line;
-            while ((line = reader.readLine()) != null) {
+            while ((line = readLine(in)) != null) {
                 if (line.isEmpty()) {
                     break;
                 }
@@ -684,6 +632,7 @@ public final class Server implements AutoCloseable {
             writer.write("Content-Type: ");
             writer.write(contentType);
             writer.write("\r\n");
+            writeSecurityHeaders(writer);
             writer.write("Connection: close\r\n");
             if (setCookie && session != null) {
                 writer.write("Set-Cookie: ");
@@ -696,6 +645,24 @@ public final class Server implements AutoCloseable {
             writer.flush();
             out.write(body);
             out.flush();
+        }
+
+        private void writeSecurityHeaders(BufferedWriter writer) throws IOException {
+            writer.write("X-Frame-Options: DENY\r\n");
+            writer.write("X-Content-Type-Options: nosniff\r\n");
+            writer.write("X-XSS-Protection: 1; mode=block\r\n");
+            writer.write("Referrer-Policy: strict-origin-when-cross-origin\r\n");
+            writer.write("Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\r\n");
+
+            String csp = app.cspHeaderValue();
+            if (csp != null) {
+                writer.write("Content-Security-Policy: ");
+                writer.write(csp);
+                writer.write("\r\n");
+            } else {
+                writer.write(
+                        "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src https://cdnjs.cloudflare.com; img-src 'self' data: https://cdn.jsdelivr.net https://images.unsplash.com; connect-src 'self' wss: ws: https://cdn.jsdelivr.net; frame-ancestors 'none';\r\n");
+            }
         }
 
         private void sendAsset(OutputStream out, App.ResolvedAsset asset, Session session, boolean setCookie)
@@ -719,6 +686,7 @@ public final class Server implements AutoCloseable {
             if (asset.maxAgeSeconds > 0) {
                 writer.write("Cache-Control: public, max-age=" + asset.maxAgeSeconds + "\r\n");
             }
+            writeSecurityHeaders(writer);
             writer.write("Connection: close\r\n");
             if (setCookie && session != null) {
                 writer.write("Set-Cookie: ");
@@ -755,29 +723,6 @@ public final class Server implements AutoCloseable {
                 this.sessionId = sessionId;
                 this.newSession = newSession;
             }
-        }
-    }
-
-    // ---------------------------------------------------------------------
-    // WebSocket implementation
-
-    public interface WebSocketListener {
-        default void onOpen(WebSocketConnection connection) {
-        }
-
-        default void onMessage(WebSocketConnection connection, String message) {
-        }
-
-        default void onClose(WebSocketConnection connection) {
-        }
-
-        default void onError(WebSocketConnection connection, Throwable error) {
-            error.printStackTrace();
-        }
-
-        static WebSocketListener noop() {
-            return new WebSocketListener() {
-            };
         }
     }
 
@@ -856,284 +801,6 @@ public final class Server implements AutoCloseable {
 
         boolean isOpen() {
             return open && !socket.isClosed();
-        }
-    }
-
-    private static final class WebSocketService implements Closeable {
-        private final InetSocketAddress address;
-        private final WebSocketListener listener;
-        private final Duration shutdownTimeout;
-        private final ExecutorService workers = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "jsui-ws-worker");
-            t.setDaemon(true);
-            return t;
-        });
-        private final Thread acceptThread;
-        private final Set<WebSocketConnection> connections = Collections.newSetFromMap(new ConcurrentHashMap<>());
-        private final Map<String, Set<WebSocketConnection>> bySession = new ConcurrentHashMap<>();
-        private volatile boolean running;
-        private ServerSocket serverSocket;
-
-        WebSocketService(InetSocketAddress address, WebSocketListener listener, Duration shutdownTimeout) {
-            this.address = address;
-            this.listener = listener != null ? listener : WebSocketListener.noop();
-            this.shutdownTimeout = shutdownTimeout != null ? shutdownTimeout : Duration.ofSeconds(5);
-            this.acceptThread = new Thread(this::acceptLoop, "jsui-ws-accept");
-            this.acceptThread.setDaemon(true);
-        }
-
-        int port() {
-            return serverSocket != null ? serverSocket.getLocalPort() : address.getPort();
-        }
-
-        void start() {
-            if (running) {
-                return;
-            }
-            running = true;
-            try {
-                serverSocket = new ServerSocket();
-                serverSocket.bind(address);
-            } catch (IOException ex) {
-                running = false;
-                throw new RuntimeException("Failed to bind WebSocket server", ex);
-            }
-            acceptThread.start();
-        }
-
-        void join() throws InterruptedException {
-            acceptThread.join();
-        }
-
-        void broadcast(String message) throws IOException {
-            for (WebSocketConnection connection : connections) {
-                if (connection.isOpen()) {
-                    connection.sendText(message);
-                }
-            }
-        }
-
-        void sendToSession(String sessionId, String message) throws IOException {
-            if (sessionId == null || sessionId.isEmpty())
-                return;
-            Set<WebSocketConnection> set = bySession.get(sessionId);
-            if (set == null)
-                return;
-            for (WebSocketConnection c : set) {
-                if (c.isOpen()) {
-                    c.sendText(message);
-                }
-            }
-        }
-
-        String findSessionId(WebSocketConnection connection) {
-            for (Map.Entry<String, Set<WebSocketConnection>> e : bySession.entrySet()) {
-                if (e.getValue().contains(connection)) {
-                    return e.getKey();
-                }
-            }
-            return null;
-        }
-
-        private void acceptLoop() {
-            while (running) {
-                try {
-                    Socket socket = serverSocket.accept();
-                    workers.submit(() -> handle(socket));
-                } catch (SocketException ex) {
-                    if (running) {
-                        ex.printStackTrace();
-                    }
-                } catch (IOException ex) {
-                    if (running) {
-                        ex.printStackTrace();
-                    }
-                }
-            }
-        }
-
-        private void handle(Socket socket) {
-            try (Socket autoClose = socket) {
-                socket.setTcpNoDelay(true);
-                InputStream in = socket.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-                OutputStream out = socket.getOutputStream();
-
-                String requestLine = reader.readLine();
-                if (requestLine == null || requestLine.isEmpty()) {
-                    return;
-                }
-                Map<String, String> headers = new HashMap<>();
-                String line;
-                while ((line = reader.readLine()) != null && !line.isEmpty()) {
-                    int idx = line.indexOf(':');
-                    if (idx > 0) {
-                        String name = line.substring(0, idx).trim().toLowerCase(Locale.ROOT);
-                        String value = line.substring(idx + 1).trim();
-                        headers.put(name, value);
-                    }
-                }
-
-                if (!"websocket".equalsIgnoreCase(headers.getOrDefault("upgrade", ""))) {
-                    return;
-                }
-                String key = headers.get("sec-websocket-key");
-                if (key == null || key.isEmpty()) {
-                    return;
-                }
-                // try extract session id from Cookie header
-                String cookieHeader = headers.getOrDefault("cookie", "");
-                String sessionId = null;
-                if (!cookieHeader.isEmpty()) {
-                    String[] cookies = cookieHeader.split(";\\s*");
-                    for (String cookie : cookies) {
-                        int idx = cookie.indexOf('=');
-                        if (idx > 0) {
-                            String name = cookie.substring(0, idx).trim();
-                            String value = cookie.substring(idx + 1).trim();
-                            if (SESSION_COOKIE.equals(name)) {
-                                sessionId = value;
-                                break;
-                            }
-                        }
-                    }
-                }
-                String acceptKey = handshakeResponse(key);
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-                writer.write("HTTP/1.1 101 Switching Protocols\r\n");
-                writer.write("Upgrade: websocket\r\n");
-                writer.write("Connection: Upgrade\r\n");
-                writer.write("Sec-WebSocket-Accept: ");
-                writer.write(acceptKey);
-                writer.write("\r\n\r\n");
-                writer.flush();
-
-                WebSocketConnection connection = new WebSocketConnection(socket);
-                connections.add(connection);
-                if (sessionId != null && !sessionId.isEmpty()) {
-                    bySession.computeIfAbsent(sessionId, k -> Collections.newSetFromMap(new ConcurrentHashMap<>()))
-                            .add(connection);
-                }
-                listener.onOpen(connection);
-                readFrames(connection, in);
-            } catch (IOException ex) {
-                listener.onError(null, ex);
-            }
-        }
-
-        private void readFrames(WebSocketConnection connection, InputStream in) {
-            try {
-                while (true) {
-                    int b1 = in.read();
-                    if (b1 == -1) {
-                        break;
-                    }
-                    int b2 = in.read();
-                    if (b2 == -1) {
-                        break;
-                    }
-                    int opcode = b1 & 0x0F;
-                    boolean masked = (b2 & 0x80) != 0;
-                    long payloadLength = b2 & 0x7F;
-                    if (payloadLength == 126) {
-                        payloadLength = readExtendedLength(in, 2);
-                    } else if (payloadLength == 127) {
-                        payloadLength = readExtendedLength(in, 8);
-                    }
-                    byte[] maskKey = new byte[4];
-                    if (masked) {
-                        readFully(in, maskKey);
-                    }
-                    if (payloadLength > Integer.MAX_VALUE) {
-                        throw new IOException("Frame too large");
-                    }
-                    byte[] payload = new byte[(int) payloadLength];
-                    readFully(in, payload);
-                    if (masked) {
-                        for (int i = 0; i < payload.length; i++) {
-                            payload[i] = (byte) (payload[i] ^ maskKey[i % 4]);
-                        }
-                    }
-                    if (opcode == 0x8) { // close
-                        connection.close();
-                        break;
-                    }
-                    if (opcode == 0x9) { // ping -> pong
-                        connection.sendControl(0xA, payload);
-                        continue;
-                    }
-                    if (opcode == 0x1) { // text
-                        String text = new String(payload, StandardCharsets.UTF_8);
-                        listener.onMessage(connection, text);
-                    }
-                }
-            } catch (IOException ex) {
-                listener.onError(connection, ex);
-            } finally {
-                connections.remove(connection);
-                for (Set<WebSocketConnection> set : bySession.values()) {
-                    set.remove(connection);
-                }
-                try {
-                    connection.close();
-                } catch (IOException ignore) {
-                    // ignore
-                }
-                listener.onClose(connection);
-            }
-        }
-
-        private long readExtendedLength(InputStream in, int bytes) throws IOException {
-            byte[] data = new byte[bytes];
-            readFully(in, data);
-            long length = 0;
-            for (int i = 0; i < bytes; i++) {
-                length = (length << 8) | (data[i] & 0xFF);
-            }
-            return length;
-        }
-
-        @Override
-        public void close() throws IOException {
-            running = false;
-            if (serverSocket != null) {
-                serverSocket.close();
-            }
-            for (WebSocketConnection connection : connections) {
-                if (connection.isOpen()) {
-                    connection.close();
-                }
-            }
-            workers.shutdownNow();
-            try {
-                workers.awaitTermination(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        private static String handshakeResponse(String key) throws IOException {
-            try {
-                MessageDigest digest = MessageDigest.getInstance("SHA-1");
-                String acceptSeed = key.trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                byte[] hash = digest.digest(acceptSeed.getBytes(StandardCharsets.ISO_8859_1));
-                return Base64.getEncoder().encodeToString(hash);
-            } catch (NoSuchAlgorithmException ex) {
-                throw new IOException("SHA-1 not available", ex);
-            }
-        }
-
-        private static void readFully(InputStream in, byte[] buffer) throws IOException {
-            int offset = 0;
-            int remaining = buffer.length;
-            while (remaining > 0) {
-                int read = in.read(buffer, offset, remaining);
-                if (read == -1) {
-                    throw new IOException("Unexpected end of stream");
-                }
-                offset += read;
-                remaining -= read;
-            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package jsui;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -8,12 +9,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
  * Java port of key data helpers from t-sui/ui.data.ts.
@@ -24,9 +31,6 @@ import java.util.TreeMap;
 public final class Data {
     private Data() {
     }
-
-    // ---------------------------------------------------------------------
-    // NormalizeForSearch
 
     public static String NormalizeForSearch(String input) {
         String s = (input == null ? "" : input).toLowerCase(Locale.ROOT);
@@ -46,9 +50,6 @@ public final class Data {
         return s;
     }
 
-    // ---------------------------------------------------------------------
-    // Constants and models
-
     public static final int BOOL = 0;
     public static final int NOT_ZERO_DATE = 1;
     public static final int ZERO_DATE = 2;
@@ -64,11 +65,13 @@ public final class Data {
         BOOL_ZERO_OPTIONS = Collections.unmodifiableList(opts);
     }
 
+    @lombok.Data
     public static final class TFieldDates {
         public Date From;
         public Date To;
     }
 
+    @lombok.Data
     public static final class TField {
         public String DB;
         public String Field;
@@ -83,6 +86,7 @@ public final class Data {
         public TFieldDates Dates;
     }
 
+    @lombok.Data
     public static final class TQuery {
         public int Limit;
         public int Offset;
@@ -91,6 +95,7 @@ public final class Data {
         public List<TField> Filter = new ArrayList<>();
     }
 
+    @lombok.Data
     public static final class TCollateResult<T> {
         public int Total;
         public int Filtered;
@@ -98,6 +103,7 @@ public final class Data {
         public TQuery Query;
     }
 
+    @lombok.Data
     public static final class LoadResult<T> {
         public int total;
         public int filtered;
@@ -131,9 +137,6 @@ public final class Data {
     public interface Export<T> {
         void export(List<T> items) throws Exception;
     }
-
-    // ---------------------------------------------------------------------
-    // Collate (Java port)
 
     public static <T> CollateModel<T> Collate(TQuery init, Loader<T> loader) {
         final State<T> state = new State<>();
@@ -227,61 +230,137 @@ public final class Data {
         try {
             TQuery query = makeQuery(state.Init);
             applyRequest(ctx, query);
-            // export all rows up to a reasonable cap
-            if (query.Limit <= 0) query.Limit = 1000000;
+            if (query.Limit <= 0)
+                query.Limit = 1000000;
             query.Offset = 0;
             normalizeQuery(query, state.Init);
             TCollateResult<T> result = triggerLoad(state, query);
-            if (result == null || result.Data == null) {
+            if (result == null || result.Data == null || result.Data.isEmpty()) {
                 ctx.Info("No data to export.");
                 return "";
             }
 
-            // Build CSV using ExcelFields if provided, else use Filter/Sort fields, else reflect all public fields
             List<TField> headers = state.ExcelFields != null && !state.ExcelFields.isEmpty()
                     ? state.ExcelFields
                     : (state.SortFields != null && !state.SortFields.isEmpty() ? state.SortFields : state.FilterFields);
 
-            StringBuilder csv = new StringBuilder();
             List<String> headerNames = new ArrayList<>();
             if (headers != null && !headers.isEmpty()) {
                 for (TField h : headers) {
-                    String name = (h != null && h.Text != null && !h.Text.isEmpty()) ? h.Text : (h != null ? (h.Field != null ? h.Field : h.DB) : "");
+                    String name = (h != null && h.Text != null && !h.Text.isEmpty()) ? h.Text
+                            : (h != null ? (h.Field != null ? h.Field : h.DB) : "");
                     headerNames.add(name != null ? name : "");
                 }
             } else {
-                // Fallback: inspect first row fields via reflection
                 if (!result.Data.isEmpty()) {
                     for (java.lang.reflect.Field f : result.Data.get(0).getClass().getFields()) {
                         headerNames.add(f.getName());
                     }
                 }
             }
-            // write header
-            csv.append(String.join(",", escapeCsv(headerNames))).append("\n");
-            // write rows
+
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("Sheet1");
+
+            Row headerRow = sheet.createRow(0);
+            CellStyle headerStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            for (int i = 0; i < headerNames.size(); i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headerNames.get(i));
+                cell.setCellStyle(headerStyle);
+            }
+
+            CellStyle dateStyle = workbook.createCellStyle();
+            dateStyle.setDataFormat(workbook.getCreationHelper().createDataFormat().getFormat("yyyy-mm-dd"));
+
+            int rowIndex = 1;
             for (T item : result.Data) {
-                List<String> row = new ArrayList<>();
+                Row row = sheet.createRow(rowIndex++);
+                int colIndex = 0;
+
                 if (headers != null && !headers.isEmpty()) {
                     for (TField h : headers) {
-                        String field = h != null && h.Field != null && !h.Field.isEmpty() ? h.Field : (h != null ? h.DB : null);
-                        row.add(stringField(item, field));
+                        String field = h != null && h.Field != null && !h.Field.isEmpty() ? h.Field
+                                : (h != null ? h.DB : null);
+                        Object value = getFieldValue(item, field);
+                        Cell cell = row.createCell(colIndex++);
+                        setCellValue(cell, value, dateStyle);
                     }
                 } else {
                     for (java.lang.reflect.Field f : item.getClass().getFields()) {
-                        row.add(stringValue(get(item, f)));
+                        Object value = get(item, f);
+                        Cell cell = row.createCell(colIndex++);
+                        setCellValue(cell, value, dateStyle);
                     }
                 }
-                csv.append(String.join(",", escapeCsv(row))).append("\n");
             }
 
-            String dataUrl = "data:text/csv;charset=utf-8," + java.net.URLEncoder.encode(csv.toString(), java.nio.charset.StandardCharsets.UTF_8);
-            // trigger download without changing the page
-            return Ui.Script("(function(){var a=document.createElement('a');a.href=\"" + dataUrl + "\";a.download='export.csv';document.body.appendChild(a);a.click();setTimeout(function(){try{document.body.removeChild(a);}catch(_){}} ,0);} )();");
+            for (int i = 0; i < headerNames.size(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
+
+            byte[] excelBytes = outputStream.toByteArray();
+            String filename = "export_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".xlsx";
+
+            ctx.DownloadAs(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename);
+            return "";
         } catch (Exception ex) {
             ctxError(state, ex);
             ctx.Error("Export failed: " + ex.getMessage());
             return "";
+        }
+    }
+
+    private static <T> Object getFieldValue(T item, String fieldName) {
+        if (item == null || fieldName == null || fieldName.isEmpty()) {
+            return null;
+        }
+        try {
+            java.lang.reflect.Field f = item.getClass().getField(fieldName);
+            return f.get(item);
+        } catch (NoSuchFieldException e) {
+            try {
+                java.lang.reflect.Field f = item.getClass().getDeclaredField(fieldName);
+                f.setAccessible(true);
+                return f.get(item);
+            } catch (NoSuchFieldException | IllegalAccessException ex) {
+                return null;
+            }
+        } catch (IllegalAccessException e) {
+            return null;
+        }
+    }
+
+    private static void setCellValue(Cell cell, Object value, CellStyle dateStyle) {
+        if (value == null) {
+            cell.setCellValue("");
+        } else if (value instanceof Number) {
+            if (value instanceof Double) {
+                cell.setCellValue((Double) value);
+            } else if (value instanceof Float) {
+                cell.setCellValue((Float) value);
+            } else if (value instanceof Long) {
+                cell.setCellValue((Long) value);
+            } else if (value instanceof Integer) {
+                cell.setCellValue((Integer) value);
+            } else {
+                cell.setCellValue(((Number) value).doubleValue());
+            }
+        } else if (value instanceof Date) {
+            cell.setCellValue((Date) value);
+            cell.setCellStyle(dateStyle);
+        } else if (value instanceof Boolean) {
+            cell.setCellValue((Boolean) value);
+        } else {
+            cell.setCellValue(String.valueOf(value));
         }
     }
 
@@ -291,41 +370,6 @@ public final class Data {
         } catch (IllegalAccessException e) {
             return null;
         }
-    }
-
-    private static String stringField(Object item, String name) {
-        if (item == null || name == null || name.isEmpty()) return "";
-        try {
-            java.lang.reflect.Field f = item.getClass().getField(name);
-            return stringValue(get(item, f));
-        } catch (NoSuchFieldException e) {
-            try {
-                java.lang.reflect.Field f = item.getClass().getDeclaredField(name);
-                f.setAccessible(true);
-                return stringValue(get(item, f));
-            } catch (NoSuchFieldException ex) {
-                return "";
-            }
-        }
-    }
-
-    private static List<String> escapeCsv(List<String> values) {
-        List<String> out = new ArrayList<>();
-        for (String v : values) out.add(escapeCsv(v));
-        return out;
-    }
-
-    private static String escapeCsv(String v) {
-        if (v == null) return "";
-        boolean needsQuote = v.contains(",") || v.contains("\n") || v.contains("\"");
-        String s = v.replace("\"", "\"\"");
-        return needsQuote ? ("\"" + s + "\"") : s;
-    }
-
-    private static String stringValue(Object v) {
-        if (v == null) return "";
-        if (v instanceof java.util.Date) return formatDate((java.util.Date) v);
-        return String.valueOf(v);
     }
 
     private static <T> TCollateResult<T> triggerLoad(State<T> state, TQuery query) {
@@ -351,7 +395,6 @@ public final class Data {
     }
 
     private static <T> void ctxError(State<T> state, Exception ex) {
-        // placeholder hook for future logging; keep silent for now
         if (state != null && state.Debug && ex != null) {
             ex.printStackTrace();
         }
@@ -451,46 +494,44 @@ public final class Data {
         List<String> children = new ArrayList<>();
         String clearJs = "(function(b){try{var f=b.closest('form');if(!f)return;var i=f.querySelector(\"[name='Search']\");if(i){i.value='';}f.submit();}catch(_){}})(this)";
         String form = Ui.form("flex", ctx.Submit(state.ActionSearch).Replace(Ui.targetAttr(state.Target))).render(
-            Ui.div("relative flex-1 w-72").render(
-                Ui.div("absolute left-3 top-1/2 transform -translate-y-1/2").render(
-                    new Ui.Button()
-                        .Submit()
-                        .Class("rounded-full bg-white hover:bg-gray-100 h-8 w-8 border border-gray-300 flex items-center justify-center")
-                        .Render(Ui.Icon("fa fa-fw fa-search"))
-                ),
-                Ui.IText("Search", query)
-                    .Class("p-1 w-full")
-                    .ClassInput("cursor-pointer bg-white border-gray-300 hover:border-blue-500 block w-full py-3 pl-12 pr-12")
-                    .Placeholder("Search")
-                    .Render(""),
-                (query.Search != null && !query.Search.isEmpty())
-                    ? Ui.div("absolute right-3 top-1/2 transform -translate-y-1/2").render(
-                        new Ui.Button()
-                            .Class("rounded-full bg-white hover:bg-gray-100 h-8 w-8 border border-gray-300 flex items-center justify-center")
-                            .Click(clearJs)
-                            .Render(Ui.Icon("fa fa-fw fa-times"))
-                    )
-                    : ""
-            )
-        );
+                Ui.div("relative flex-1 w-72").render(
+                        Ui.div("absolute left-3 top-1/2 transform -translate-y-1/2").render(
+                                new Ui.Button()
+                                        .Submit()
+                                        .Class("rounded-full bg-white hover:bg-gray-100 h-8 w-8 border border-gray-300 flex items-center justify-center")
+                                        .Render(Ui.Icon("fa fa-fw fa-search"))),
+                        Ui.IText("Search", query)
+                                .Class("p-1 w-full")
+                                .ClassInput(
+                                        "cursor-pointer bg-white border-gray-300 hover:border-blue-500 block w-full py-3 pl-12 pr-12")
+                                .Placeholder("Search")
+                                .Render(""),
+                        (query.Search != null && !query.Search.isEmpty())
+                                ? Ui.div("absolute right-3 top-1/2 transform -translate-y-1/2").render(
+                                        new Ui.Button()
+                                                .Class("rounded-full bg-white hover:bg-gray-100 h-8 w-8 border border-gray-300 flex items-center justify-center")
+                                                .Click(clearJs)
+                                                .Render(Ui.Icon("fa fa-fw fa-times")))
+                                : ""));
         children.add(form);
 
         if (state.ExcelFields != null && !state.ExcelFields.isEmpty()) {
             String excel = new Ui.Button()
-                .Color(Ui.Blue)
-                .Class("rounded-lg shadow px-4 h-12 bg-white text-blue-700 flex items-center gap-2")
-                .Click(ctx.Call(state.ActionExcel).None())
-                .Render(Ui.IconLeft("fa fa-download", "XLS"));
+                    .Color(Ui.Blue)
+                    .Class("rounded-lg shadow px-4 h-12 bg-white text-blue-700 flex items-center gap-2")
+                    .Click(ctx.Call(state.ActionExcel).None())
+                    .Render(Ui.IconLeft("fa fa-download", "XLS"));
             children.add(excel);
         }
 
         if (state.FilterFields != null && !state.FilterFields.isEmpty()) {
             String toggle = new Ui.Button()
-                .Submit()
-                .Class("rounded-r-lg shadow bg-white h-12 px-4 flex items-center gap-2")
-                .Color(Ui.Blue)
-                .Click("var el=document.getElementById('" + state.TargetFilter.id + "'); if(el){el.classList.toggle('hidden');}")
-                .Render(Ui.IconLeft("fa fa-fw fa-chevron-down", "Filter"));
+                    .Submit()
+                    .Class("rounded-r-lg shadow bg-white h-12 px-4 flex items-center gap-2")
+                    .Color(Ui.Blue)
+                    .Click("var el=document.getElementById('" + state.TargetFilter.id
+                            + "'); if(el){el.classList.toggle('hidden');}")
+                    .Render(Ui.IconLeft("fa fa-fw fa-chevron-down", "Filter"));
             children.add(toggle);
         }
 
@@ -691,9 +732,6 @@ public final class Data {
         }
         return String.join(" ", rows);
     }
-
-    // ---------------------------------------------------------------------
-    // Helpers
 
     private static <T> void applyRequest(Context ctx, TQuery query) {
         if (ctx == null) {
@@ -968,6 +1006,7 @@ public final class Data {
         return out;
     }
 
+    @lombok.Data
     private static final class State<T> {
         TQuery Init;
         Ui.Target Target;
