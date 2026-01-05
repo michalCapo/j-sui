@@ -4808,11 +4808,14 @@ public final class Ui {
     public static String Normalize(String s) {
         if (s == null)
             return "";
-        String x = s.replace("\"", "&quot;");
+        String x = s.replace("\\", "\\\\");
+        x = x.replace("\"", "\\\"");
         x = x.replaceAll("(?s)/\\*.*?\\*/", "");
         x = x.replaceAll("(?s)<!--.*?-->", "");
         x = x.replaceAll("(?m)^[ \t]*//.*$", "");
-        x = x.replaceAll("[\t\n]+", "");
+        x = x.replace("\t", "\\t");
+        x = x.replace("\n", "\\n");
+        x = x.replace("\r", "\\r");
         x = x.replaceAll("\\s{4,}", " ");
         return x.trim();
     }

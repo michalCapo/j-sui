@@ -218,6 +218,7 @@ public final class Context {
     public void Patch(Ui.Action target, String html, Runnable clear) {
         if (target == null || target.id == null || target.id.isEmpty() || html == null)
             return;
+
         String swap = target.swap != null ? target.swap.name() : Ui.Swap.inline.name();
         if (clear != null && app != null) {
             app.registerClear(sessionID, target.id, clear);
@@ -278,6 +279,7 @@ public final class Context {
     public void Repeat(Ui.Action target, long intervalMillis, Callable job, Runnable clear) {
         if (job == null || target == null)
             return;
+
         final long delay = Math.max(50L, intervalMillis);
         Thread t = new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
@@ -296,6 +298,7 @@ public final class Context {
                 }
             }
         }, "jsui-repeat");
+
         if (app != null) {
             app.registerClear(sessionID, target.id, () -> {
                 try {
@@ -377,7 +380,8 @@ public final class Context {
         String normalizedFilename = Ui.Normalize(filename);
         String js = """
                 (function(){var a=document.createElement('a');a.href='%s';a.download='%s';document.body.appendChild(a);a.click();\
-                setTimeout(function(){try{document.body.removeChild(a);}catch(_){}} ,0);} )();""".formatted(normalizedHref, normalizedFilename);
+                setTimeout(function(){try{document.body.removeChild(a);}catch(_){}} ,0);} )();"""
+                .formatted(normalizedHref, normalizedFilename);
         append.add(Ui.Script(js));
     }
 
@@ -400,38 +404,41 @@ public final class Context {
     private void displayMessage(String message, String color) {
         String escapedMessage = escapeJs(message != null ? message : "");
         String escapedColor = escapeJs(color != null ? color : "");
-        String script = Ui.Script("""
-                (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
-                box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
-                var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
-                n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\
-                n.style.boxShadow='0 6px 18px rgba(0,0,0,0.08)';n.style.border='1px solid';var C=%s;\
-                var isGreen=C.indexOf('green')>=0;var isRed=C.indexOf('red')>=0;var accent=isGreen?'#16a34a':(isRed?'#dc2626':'#4f46e5');\
-                if(isGreen){n.style.background='#dcfce7';n.style.color='#166534';n.style.borderColor='#bbf7d0';}\
-                else if(isRed){n.style.background='#fee2e2';n.style.color='#991b1b';n.style.borderColor='#fecaca';}\
-                else{n.style.background='#eef2ff';n.style.color='#3730a3';n.style.borderColor='#e0e7ff';}\
-                n.style.borderLeft='4px solid '+accent;var dot=document.createElement('span');dot.style.width='10px';dot.style.height='10px';\
-                dot.style.borderRadius='9999px';dot.style.background=accent;var t=document.createElement('span');t.textContent=%s;\
-                n.appendChild(dot);n.appendChild(t);box.appendChild(n);setTimeout(function(){try{box.removeChild(n);}catch(_){}},5000);}catch(_){}})();"""
-                .formatted(escapedColor, escapedMessage));
+        String script = Ui
+                .Script("""
+                        (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
+                        box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
+                        var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
+                        n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\
+                        n.style.boxShadow='0 6px 18px rgba(0,0,0,0.08)';n.style.border='1px solid';var C=%s;\
+                        var isGreen=C.indexOf('green')>=0;var isRed=C.indexOf('red')>=0;var accent=isGreen?'#16a34a':(isRed?'#dc2626':'#4f46e5');\
+                        if(isGreen){n.style.background='#dcfce7';n.style.color='#166534';n.style.borderColor='#bbf7d0';}\
+                        else if(isRed){n.style.background='#fee2e2';n.style.color='#991b1b';n.style.borderColor='#fecaca';}\
+                        else{n.style.background='#eef2ff';n.style.color='#3730a3';n.style.borderColor='#e0e7ff';}\
+                        n.style.borderLeft='4px solid '+accent;var dot=document.createElement('span');dot.style.width='10px';dot.style.height='10px';\
+                        dot.style.borderRadius='9999px';dot.style.background=accent;var t=document.createElement('span');t.textContent=%s;\
+                        n.appendChild(dot);n.appendChild(t);box.appendChild(n);setTimeout(function(){try{box.removeChild(n);}catch(_){}},5000);}catch(_){}})();"""
+                        .formatted(escapedColor, escapedMessage));
         append.add(script);
     }
 
     private void displayError(String message) {
         String escapedMessage = escapeJs(message != null ? message : "");
-        String script = Ui.Script("""
-                (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
-                box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
-                var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
-                n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\
-                n.style.background='#fee2e2';n.style.color='#991b1b';n.style.border='1px solid #fecaca';n.style.borderLeft='4px solid #dc2626';\
-                n.style.boxShadow='0 6px 18px rgba(0,0,0,0.08)';n.style.fontWeight='600';n.style.pointerEvents='auto';\
-                var dot=document.createElement('span');dot.style.width='10px';dot.style.height='10px';dot.style.borderRadius='9999px';dot.style.background='#dc2626';\
-                var t=document.createElement('span');t.textContent=%s;\
-                var btn=document.createElement('button');btn.textContent='Reload';btn.style.background='#991b1b';btn.style.color='#fff';\
-                btn.style.border='none';btn.style.padding='6px 10px';btn.style.borderRadius='8px';btn.style.cursor='pointer';btn.style.fontWeight='700';\
-                btn.onclick=function(){try{window.location.reload();}catch(_){}};n.appendChild(dot);n.appendChild(t);n.appendChild(btn);box.appendChild(n);\
-                setTimeout(function(){try{if(n&&n.parentNode){n.parentNode.removeChild(n);}}catch(_){}},88000);}catch(_){}})();""".formatted(escapedMessage));
+        String script = Ui
+                .Script("""
+                        (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
+                        box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
+                        var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
+                        n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\
+                        n.style.background='#fee2e2';n.style.color='#991b1b';n.style.border='1px solid #fecaca';n.style.borderLeft='4px solid #dc2626';\
+                        n.style.boxShadow='0 6px 18px rgba(0,0,0,0.08)';n.style.fontWeight='600';n.style.pointerEvents='auto';\
+                        var dot=document.createElement('span');dot.style.width='10px';dot.style.height='10px';dot.style.borderRadius='9999px';dot.style.background='#dc2626';\
+                        var t=document.createElement('span');t.textContent=%s;\
+                        var btn=document.createElement('button');btn.textContent='Reload';btn.style.background='#991b1b';btn.style.color='#fff';\
+                        btn.style.border='none';btn.style.padding='6px 10px';btn.style.borderRadius='8px';btn.style.cursor='pointer';btn.style.fontWeight='700';\
+                        btn.onclick=function(){try{window.location.reload();}catch(_){}};n.appendChild(dot);n.appendChild(t);n.appendChild(btn);box.appendChild(n);\
+                        setTimeout(function(){try{if(n&&n.parentNode){n.parentNode.removeChild(n);}}catch(_){}},88000);}catch(_){}})();"""
+                        .formatted(escapedMessage));
         append.add(script);
     }
 
