@@ -56,12 +56,12 @@ public final class Data {
     public static final int DATES = 3;
     public static final int SELECT = 4;
 
-    public static final List<Ui.AOption> BOOL_ZERO_OPTIONS;
+    public static final List<ui.AOption> BOOL_ZERO_OPTIONS;
     static {
-        List<Ui.AOption> opts = new ArrayList<>();
-        opts.add(new Ui.AOption("", "All"));
-        opts.add(new Ui.AOption("yes", "On"));
-        opts.add(new Ui.AOption("no", "Off"));
+        List<ui.AOption> opts = new ArrayList<>();
+        opts.add(new ui.AOption("", "All"));
+        opts.add(new ui.AOption("yes", "On"));
+        opts.add(new ui.AOption("no", "Off"));
         BOOL_ZERO_OPTIONS = Collections.unmodifiableList(opts);
     }
 
@@ -80,7 +80,7 @@ public final class Data {
         public String Value;
         public int As;
         public String Condition;
-        public List<Ui.AOption> Options = new ArrayList<>();
+        public List<ui.AOption> Options = new ArrayList<>();
 
         public boolean Bool;
         public TFieldDates Dates;
@@ -141,8 +141,8 @@ public final class Data {
     public static <T> CollateModel<T> Collate(TQuery init, Loader<T> loader) {
         final State<T> state = new State<>();
         state.Init = makeQuery(init);
-        state.Target = Ui.Target();
-        state.TargetFilter = Ui.Target();
+        state.Target = ui.Target();
+        state.TargetFilter = ui.Target();
         state.Loader = loader;
 
         state.ActionSearch = ctx -> handleSearch(state, ctx);
@@ -404,19 +404,19 @@ public final class Data {
             boolean loading) {
         String header = renderHeader(ctx, state, query, loading);
         if (loading || result == null) {
-            String skeletonRows = Ui.Skeleton.List(Ui.Target(), 6);
-            String skeletonPager = Ui.div("flex items-center justify-center").render(
-                    Ui.div("mx-4 font-bold text-lg").render("\u00A0"),
-                    Ui.div("flex gap-px flex-1 justify-end").render(
-                            Ui.div("bg-gray-200 h-9 w-10 rounded-l border").render(),
-                            Ui.div("bg-gray-200 h-9 w-36 rounded-r border").render()));
-            return Ui.div("flex flex-col gap-2 mt-2", Ui.targetAttr(state.Target)).render(header, skeletonRows,
+            String skeletonRows = ui.Skeleton.List(ui.Target(), 6);
+            String skeletonPager = ui.div("flex items-center justify-center").render(
+                    ui.div("mx-4 font-bold text-lg").render("\u00A0"),
+                    ui.div("flex gap-px flex-1 justify-end").render(
+                            ui.div("bg-gray-200 h-9 w-10 rounded-l border").render(),
+                            ui.div("bg-gray-200 h-9 w-36 rounded-r border").render()));
+            return ui.div("flex flex-col gap-2 mt-2", state.Target.id()).render(header, skeletonRows,
                     skeletonPager);
         }
 
         String rows = renderRows(result.Data, state.OnRow);
         String pager = renderPager(ctx, state, result);
-        return Ui.div("flex flex-col gap-2 mt-2", Ui.targetAttr(state.Target)).render(header, rows, pager);
+        return ui.div("flex flex-col gap-2 mt-2", state.Target.id()).render(header, rows, pager);
     }
 
     private static <T> String renderHeader(Context ctx, State<T> state, TQuery query, boolean loading) {
@@ -424,12 +424,12 @@ public final class Data {
         String searching = renderSearching(ctx, state, query);
         String filtering = renderFiltering(ctx, state, query);
         String wrapperCls = loading ? "flex flex-col pointer-events-none" : "flex flex-col";
-        return Ui.div(wrapperCls).render(
-                Ui.div("flex gap-x-2").render(
+        return ui.div(wrapperCls).render(
+                ui.div("flex gap-x-2").render(
                         sorting,
-                        Ui.Flex1,
+                        ui.Flex1,
                         searching),
-                Ui.div("flex justify-end").render(filtering));
+                ui.div("flex justify-end").render(filtering));
     }
 
     private static <T> String renderSorting(Context ctx, State<T> state, TQuery query) {
@@ -449,10 +449,10 @@ public final class Data {
             String field = db.toLowerCase(Locale.ROOT);
             String order = query.Order != null ? query.Order.toLowerCase(Locale.ROOT) : "";
             String direction = "";
-            String color = Ui.GrayOutline;
+            String color = ui.GrayOutline;
             if (order.startsWith(field + " ") || order.equals(field)) {
                 direction = order.contains("asc") ? "asc" : "desc";
-                color = Ui.Purple;
+                color = ui.Purple;
             }
             String reverse = "desc";
             if ("desc".equals(direction)) {
@@ -464,78 +464,78 @@ public final class Data {
             children.add(hiddenInput("Limit", Integer.toString(query.Limit)));
             children.add(hiddenInput("Offset", "0"));
             children.addAll(hiddenFilterInputs(query));
-            String button = new Ui.Button()
+            String button = new ui.Button()
                     .Submit()
                     .Class("bg-white rounded")
                     .Color(color)
                     .Render(
-                            Ui.div("flex gap-2 items-center").render(
+                            ui.div("flex gap-2 items-center").render(
                                     directionIcon(direction),
                                     sort.Text != null ? sort.Text : db));
             children.add(button);
-            String form = Ui.form("inline-flex", ctx.Submit(state.ActionSort).Replace(Ui.targetAttr(state.Target)))
+            String form = ui.form("inline-flex", ctx.Submit(state.ActionSort).Replace(state.Target.id()))
                     .render(children.toArray(new String[0]));
             buttons.add(form);
         }
-        return Ui.div("flex gap-1").render(buttons.toArray(new String[0]));
+        return ui.div("flex gap-1").render(buttons.toArray(new String[0]));
     }
 
     private static String directionIcon(String direction) {
         if ("asc".equals(direction)) {
-            return Ui.Icon("fa fa-fw fa-sort-amount-asc");
+            return ui.Icon("fa fa-fw fa-sort-amount-asc");
         }
         if ("desc".equals(direction)) {
-            return Ui.Icon("fa fa-fw fa-sort-amount-desc");
+            return ui.Icon("fa fa-fw fa-sort-amount-desc");
         }
-        return Ui.Icon("fa fa-fw fa-sort");
+        return ui.Icon("fa fa-fw fa-sort");
     }
 
     private static <T> String renderSearching(Context ctx, State<T> state, TQuery query) {
         List<String> children = new ArrayList<>();
         String clearJs = "(function(b){try{var f=b.closest('form');if(!f)return;var i=f.querySelector(\"[name='Search']\");if(i){i.value='';}f.submit();}catch(_){}})(this)";
-        String form = Ui.form("flex", ctx.Submit(state.ActionSearch).Replace(Ui.targetAttr(state.Target))).render(
-                Ui.div("relative flex-1 w-72").render(
-                        Ui.div("absolute left-3 top-1/2 transform -translate-y-1/2").render(
-                                new Ui.Button()
+        String form = ui.form("flex", ctx.Submit(state.ActionSearch).Replace(state.Target.id())).render(
+                ui.div("relative flex-1 w-72").render(
+                        ui.div("absolute left-3 top-1/2 transform -translate-y-1/2").render(
+                                new ui.Button()
                                         .Submit()
                                         .Class("rounded-full bg-white hover:bg-gray-100 h-8 w-8 border border-gray-300 flex items-center justify-center")
-                                        .Render(Ui.Icon("fa fa-fw fa-search"))),
-                        Ui.IText("Search", query)
+                                        .Render(ui.Icon("fa fa-fw fa-search"))),
+                        ui.IText("Search", query)
                                 .Class("p-1 w-full")
                                 .ClassInput(
                                         "cursor-pointer bg-white border-gray-300 hover:border-blue-500 block w-full py-3 pl-12 pr-12")
                                 .Placeholder("Search")
                                 .Render(""),
                         (query.Search != null && !query.Search.isEmpty())
-                                ? Ui.div("absolute right-3 top-1/2 transform -translate-y-1/2").render(
-                                        new Ui.Button()
+                                ? ui.div("absolute right-3 top-1/2 transform -translate-y-1/2").render(
+                                        new ui.Button()
                                                 .Class("rounded-full bg-white hover:bg-gray-100 h-8 w-8 border border-gray-300 flex items-center justify-center")
                                                 .Click(clearJs)
-                                                .Render(Ui.Icon("fa fa-fw fa-times")))
+                                                .Render(ui.Icon("fa fa-fw fa-times")))
                                 : ""));
         children.add(form);
 
         if (state.ExcelFields != null && !state.ExcelFields.isEmpty()) {
-            String excel = new Ui.Button()
-                    .Color(Ui.Blue)
+            String excel = new ui.Button()
+                    .Color(ui.Blue)
                     .Class("rounded-lg shadow px-4 h-12 bg-white text-blue-700 flex items-center gap-2")
                     .Click(ctx.Call(state.ActionExcel).None())
-                    .Render(Ui.IconLeft("fa fa-download", "XLS"));
+                    .Render(ui.IconLeft("fa fa-download", "XLS"));
             children.add(excel);
         }
 
         if (state.FilterFields != null && !state.FilterFields.isEmpty()) {
-            String toggle = new Ui.Button()
+            String toggle = new ui.Button()
                     .Submit()
                     .Class("rounded-r-lg shadow bg-white h-12 px-4 flex items-center gap-2")
-                    .Color(Ui.Blue)
-                    .Click("var el=document.getElementById('" + state.TargetFilter.id
+                    .Color(ui.Blue)
+                    .Click("var el=document.getElementById('" + state.TargetFilter.id()
                             + "'); if(el){el.classList.toggle('hidden');}")
-                    .Render(Ui.IconLeft("fa fa-fw fa-chevron-down", "Filter"));
+                    .Render(ui.IconLeft("fa fa-fw fa-chevron-down", "Filter"));
             children.add(toggle);
         }
 
-        return Ui.div("flex gap-px bg-blue-800 rounded-lg p-1 items-center").render(children.toArray(new String[0]));
+        return ui.div("flex gap-px bg-blue-800 rounded-lg p-1 items-center").render(children.toArray(new String[0]));
     }
 
     private static <T> String renderFiltering(Context ctx, State<T> state, TQuery query) {
@@ -553,58 +553,58 @@ public final class Data {
             String position = "Filter." + i;
             List<String> parts = new ArrayList<>();
             if (def.As == ZERO_DATE || def.As == NOT_ZERO_DATE) {
-                parts.add(Ui.Hidden(position + ".Field", "string", target.DB));
-                parts.add(Ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
+                parts.add(ui.Hidden(position + ".Field", "string", target.DB));
+                parts.add(ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
                 parts.add(hiddenCheckbox(position + ".Bool", target.Bool));
-                parts.add(Ui.ICheckbox(position + ".Bool", query).Render(def.Text));
+                parts.add(ui.ICheckbox(position + ".Bool", query).Render(def.Text));
             } else if (def.As == DATES) {
-                parts.add(Ui.Hidden(position + ".Field", "string", target.DB));
-                parts.add(Ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
-                parts.add(Ui.IDate(position + ".Dates.From", query).Render("From"));
-                parts.add(Ui.IDate(position + ".Dates.To", query).Render("To"));
+                parts.add(ui.Hidden(position + ".Field", "string", target.DB));
+                parts.add(ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
+                parts.add(ui.IDate(position + ".Dates.From", query).Render("From"));
+                parts.add(ui.IDate(position + ".Dates.To", query).Render("To"));
             } else if (def.As == SELECT) {
-                parts.add(Ui.Hidden(position + ".Field", "string", target.DB));
-                parts.add(Ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
-                Ui.ISelect select = Ui.ISelect(position + ".Value", query)
+                parts.add(ui.Hidden(position + ".Field", "string", target.DB));
+                parts.add(ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
+                ui.ISelect select = ui.ISelect(position + ".Value", query)
                         .Options(target.Options != null && !target.Options.isEmpty() ? target.Options : def.Options)
                         .Value(target.Value != null ? target.Value : "");
                 parts.add(select.Render(def.Text));
             } else if (def.As == BOOL) {
-                parts.add(Ui.Hidden(position + ".Field", "string", target.DB));
-                parts.add(Ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
-                parts.add(Ui.Hidden(position + ".Condition", "string",
+                parts.add(ui.Hidden(position + ".Field", "string", target.DB));
+                parts.add(ui.Hidden(position + ".As", "number", Integer.toString(def.As)));
+                parts.add(ui.Hidden(position + ".Condition", "string",
                         target.Condition != null ? target.Condition : def.Condition));
                 parts.add(hiddenCheckbox(position + ".Bool", target.Bool));
-                parts.add(Ui.ICheckbox(position + ".Bool", query).Render(def.Text));
+                parts.add(ui.ICheckbox(position + ".Bool", query).Render(def.Text));
             }
-            rows.add(Ui.div("col-span-2 flex flex-col gap-2").render(parts.toArray(new String[0])));
+            rows.add(ui.div("col-span-2 flex flex-col gap-2").render(parts.toArray(new String[0])));
         }
 
         List<String> children = new ArrayList<>();
-        children.add(Ui.Hidden("Search", "string", query.Search));
-        children.add(Ui.Hidden("Order", "string", query.Order));
-        children.add(Ui.Hidden("Limit", "number", Integer.toString(query.Limit)));
-        children.add(Ui.Hidden("Offset", "number", "0"));
+        children.add(ui.Hidden("Search", "string", query.Search));
+        children.add(ui.Hidden("Order", "string", query.Order));
+        children.add(ui.Hidden("Limit", "number", Integer.toString(query.Limit)));
+        children.add(ui.Hidden("Offset", "number", "0"));
         children.addAll(rows);
 
-        String buttons = Ui.div("flex justify-end gap-2 mt-6 pt-3 border-t border-gray-200").render(
-                new Ui.Button()
+        String buttons = ui.div("flex justify-end gap-2 mt-6 pt-3 border-t border-gray-200").render(
+                new ui.Button()
                         .Submit()
                         .Class("rounded-full h-10 px-4 bg-white")
-                        .Color(Ui.GrayOutline)
-                        .Click(resetFiltersJs(state.TargetFilter.id))
-                        .Render(Ui.IconLeft("fa fa-fw fa-rotate-left", "Reset")),
-                new Ui.Button()
+                        .Color(ui.GrayOutline)
+                        .Click("return false")
+                        .Render(ui.IconLeft("fa fa-fw fa-rotate-left", "Reset")),
+                new ui.Button()
                         .Submit()
                         .Class("rounded-full h-10 px-4 shadow")
-                        .Color(Ui.Blue)
-                        .Render(Ui.IconLeft("fa fa-fw fa-check", "Apply")));
+                        .Color(ui.Blue)
+                        .Render(ui.IconLeft("fa fa-fw fa-check", "Apply")));
         children.add(buttons);
 
-        String form = Ui.form("flex flex-col p-4", ctx.Submit(state.ActionSearch).Replace(Ui.targetAttr(state.Target)))
+        String form = ui.form("flex flex-col p-4", ctx.Submit(state.ActionSearch).Replace(state.Target.id()))
                 .render(children.toArray(new String[0]));
-        return Ui.div("col-span-2 relative h-0 hidden z-30", Ui.targetAttr(state.TargetFilter)).render(
-                Ui.div("absolute top-2 right-0 w-96 bg-white rounded-xl shadow-xl ring-1 ring-black/10 border border-gray-200")
+        return ui.div("col-span-2 relative h-0 hidden z-30", state.TargetFilter.id()).render(
+                ui.div("absolute top-2 right-0 w-96 bg-white rounded-xl shadow-xl ring-1 ring-black/10 border border-gray-200")
                         .render(form));
     }
 
@@ -613,7 +613,7 @@ public final class Data {
     }
 
     private static String hiddenCheckbox(String name, boolean value) {
-        return Ui.input("", Ui.Attr.of().type("hidden").name(name).value(Boolean.toString(value)));
+        return ui.input("", ui.Attr.of().type("hidden").name(name).value(Boolean.toString(value)));
     }
 
     private static List<String> hiddenFilterInputs(TQuery query) {
@@ -646,7 +646,7 @@ public final class Data {
     }
 
     private static String hiddenInput(String name, String value) {
-        return Ui.input("", Ui.Attr.of().type("hidden").name(name).value(value != null ? value : ""));
+        return ui.input("", ui.Attr.of().type("hidden").name(name).value(value != null ? value : ""));
     }
 
     private static String valueOr(String primary, String fallback) {
@@ -674,13 +674,13 @@ public final class Data {
         resetChildren.add(hiddenInput("Limit", Integer.toString(result.Query != null ? result.Query.Limit : 10)));
         resetChildren.add(hiddenInput("Offset", "0"));
         resetChildren.addAll(hiddenFilterInputs(result.Query != null ? result.Query : new TQuery()));
-        resetChildren.add(new Ui.Button()
+        resetChildren.add(new ui.Button()
                 .Submit()
                 .Class("bg-white rounded-l h-10 px-4")
-                .Color(Ui.PurpleOutline)
+                .Color(ui.PurpleOutline)
                 .Disabled(size == 0 || size <= Math.max(1, result.Query != null ? result.Query.Limit : 10))
-                .Render(Ui.Icon("fa fa-fw fa-undo")));
-        String resetForm = Ui.form("inline-flex", ctx.Submit(state.ActionReset).Replace(Ui.targetAttr(state.Target)))
+                .Render(ui.Icon("fa fa-fw fa-undo")));
+        String resetForm = ui.form("inline-flex", ctx.Submit(state.ActionReset).Replace(state.Target.id()))
                 .render(resetChildren.toArray(new String[0]));
 
         List<String> moreChildren = new ArrayList<>();
@@ -689,33 +689,33 @@ public final class Data {
         moreChildren.add(hiddenInput("Limit", Integer.toString(result.Query != null ? result.Query.Limit : 10)));
         moreChildren.add(hiddenInput("Offset", Integer.toString(result.Query != null ? result.Query.Offset : 0)));
         moreChildren.addAll(hiddenFilterInputs(result.Query != null ? result.Query : new TQuery()));
-        moreChildren.add(new Ui.Button()
+        moreChildren.add(new ui.Button()
                 .Submit()
                 .Class("rounded-r h-10 px-4")
-                .Color(Ui.Purple)
+                .Color(ui.Purple)
                 .Disabled(size >= result.Filtered)
-                .Render(Ui.div("flex gap-2 items-center").render(
-                        Ui.Icon("fa fa-arrow-down"),
+                .Render(ui.div("flex gap-2 items-center").render(
+                        ui.Icon("fa fa-arrow-down"),
                         "Load more items")));
-        String moreForm = Ui.form("inline-flex", ctx.Submit(state.ActionResize).Replace(Ui.targetAttr(state.Target)))
+        String moreForm = ui.form("inline-flex", ctx.Submit(state.ActionResize).Replace(state.Target.id()))
                 .render(moreChildren.toArray(new String[0]));
 
-        return Ui.div("flex items-center justify-center").render(
-                Ui.div("mx-4 font-bold text-lg").render(count),
-                Ui.div("flex gap-px flex-1 justify-end").render(resetForm, moreForm));
+        return ui.div("flex items-center justify-center").render(
+                ui.div("mx-4 font-bold text-lg").render(count),
+                ui.div("flex gap-px flex-1 justify-end").render(resetForm, moreForm));
     }
 
     private static <T> String emptyState(TCollateResult<T> result) {
         if (result.Total == 0) {
-            return Ui.div("mt-2 py-24 rounded text-xl flex justify-center items-center bg-white rounded-lg").render(
-                    Ui.div("").render(
-                            Ui.div("text-black text-2xl p-4 mb-2 font-bold flex justify-center items-center")
+            return ui.div("mt-2 py-24 rounded text-xl flex justify-center items-center bg-white rounded-lg").render(
+                    ui.div("").render(
+                            ui.div("text-black text-2xl p-4 mb-2 font-bold flex justify-center items-center")
                                     .render("No records found")));
         }
-        return Ui.div("mt-2 py-24 rounded text-xl flex justify-center items-center bg-white rounded-lg").render(
-                Ui.div("flex gap-x-px items-center justify-center text-2xl").render(
-                        Ui.Icon("fa fa-fw fa-exclamation-triangle text-yellow-500"),
-                        Ui.div("text-black p-4 mb-2 font-bold flex justify-center items-center")
+        return ui.div("mt-2 py-24 rounded text-xl flex justify-center items-center bg-white rounded-lg").render(
+                ui.div("flex gap-x-px items-center justify-center text-2xl").render(
+                        ui.Icon("fa fa-fw fa-exclamation-triangle text-yellow-500"),
+                        ui.div("text-black p-4 mb-2 font-bold flex justify-center items-center")
                                 .render("No records found for the selected filter")));
     }
 
@@ -724,7 +724,7 @@ public final class Data {
             return "";
         }
         if (onRow == null) {
-            return Ui.div("").render("Missing row renderer");
+            return ui.div("").render("Missing row renderer");
         }
         List<String> rows = new ArrayList<>();
         for (int i = 0; i < data.size(); i++) {
@@ -1009,8 +1009,8 @@ public final class Data {
     @lombok.Data
     private static final class State<T> {
         TQuery Init;
-        Ui.Target Target;
-        Ui.Target TargetFilter;
+        ui.Target Target;
+        ui.Target TargetFilter;
         List<TField> SearchFields = new ArrayList<>();
         List<TField> SortFields = new ArrayList<>();
         List<TField> FilterFields = new ArrayList<>();

@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.ThreadLocalRandom;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -22,10 +21,7 @@ import lombok.experimental.Accessors;
  * Provides HTML string builders, attribute helpers, basic form controls,
  * and Target/Skeleton utilities needed by server/data layers.
  */
-public final class Ui {
-
-    private Ui() {
-    }
+public final class ui {
 
     public enum Swap {
         inline, outline, none, append, prepend
@@ -240,13 +236,6 @@ public final class Ui {
         }
     }
 
-    public static Attr targetAttr(Target target) {
-        if (target == null || target.id == null) {
-            return null;
-        }
-        return Attr.of().id(target.id);
-    }
-
     @Data
     @NoArgsConstructor
     public static final class AOption {
@@ -266,12 +255,16 @@ public final class Ui {
         public final Action Prepend;
         public final Action Render;
 
-        public Target(String id) {
-            this.id = id;
+        public Target() {
+            this.id = makeId();
             this.Replace = new Action(id, Swap.outline);
             this.Append = new Action(id, Swap.append);
             this.Prepend = new Action(id, Swap.prepend);
             this.Render = new Action(id, Swap.inline);
+        }
+
+        public Attr id() {
+            return Attr.of().id(this.id);
         }
 
         public String Skeleton(SkeletonType type) {
@@ -306,7 +299,7 @@ public final class Ui {
         }
 
         public static String Default(Target t) {
-            return div("animate-pulse", targetAttr(t)).render(
+            return div("animate-pulse", t.id()).render(
                     div("bg-white dark:bg-gray-900 rounded-lg p-4 shadow").render(
                             div("bg-gray-200 h-5 rounded w-5/6 mb-2").render(),
                             div("bg-gray-200 h-5 rounded w-2/3 mb-2").render(),
@@ -323,12 +316,12 @@ public final class Ui {
                                         div("bg-gray-200 h-4 rounded w-5/6 mb-2").render(),
                                         div("bg-gray-200 h-4 rounded w-3/6").render())));
             }
-            return div("animate-pulse", targetAttr(t)).render(
+            return div("animate-pulse", t.id()).render(
                     div("bg-white dark:bg-gray-900 rounded-lg p-4 shadow").render(String.join("", items)));
         }
 
         public static String Component(Target t) {
-            return div("animate-pulse", targetAttr(t)).render(
+            return div("animate-pulse", t.id()).render(
                     div("bg-white dark:bg-gray-900 rounded-lg p-4 shadow").render(
                             div("bg-gray-200 h-6 rounded w-2/5 mb-4").render(),
                             div("bg-gray-200 h-4 rounded w-full mb-2").render(),
@@ -342,7 +335,7 @@ public final class Ui {
                     div("bg-gray-200 h-4 rounded w-full mb-2").render(),
                     div("bg-gray-200 h-4 rounded w-5/6 mb-2").render(),
                     div("bg-gray-200 h-4 rounded w-4/6").render());
-            return div("animate-pulse", targetAttr(t)).render(
+            return div("animate-pulse", t.id()).render(
                     div("bg-gray-200 h-8 rounded w-1/3 mb-6").render(),
                     card,
                     card);
@@ -358,7 +351,7 @@ public final class Ui {
             String actions = div("flex justify-end gap-3 mt-6").render(
                     div("bg-gray-200 h-10 rounded w-24").render(),
                     div("bg-gray-200 h-10 rounded w-32").render());
-            return div("animate-pulse", targetAttr(t)).render(
+            return div("animate-pulse", t.id()).render(
                     div("bg-white dark:bg-gray-900 rounded-lg p-4 shadow").render(
                             div("bg-gray-200 h-6 rounded w-2/5 mb-5").render(),
                             div("grid grid-cols-1 md:grid-cols-2 gap-4").render(
@@ -1503,7 +1496,7 @@ public final class Ui {
                 return "";
             }
             String id = makeId();
-            String lbl = Ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
+            String lbl = ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
 
             // Prepare min/max strings depending on input type
             String minStr = null, maxStr = null;
@@ -1699,7 +1692,7 @@ public final class Ui {
             }
             String current = resolveValue();
             String id = makeId();
-            String lbl = Ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
+            String lbl = ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
             StringJoiner opt = new StringJoiner(" ");
 
             boolean selectedAssigned = false;
@@ -1708,14 +1701,14 @@ public final class Ui {
                 if (sel) {
                     selectedAssigned = true;
                 }
-                opt.add(Ui.option("", Attr.of().value("").selected(sel ? "selected" : null)).render(placeholder));
+                opt.add(ui.option("", Attr.of().value("").selected(sel ? "selected" : null)).render(placeholder));
             }
             if (empty) {
                 boolean sel = !selectedAssigned && (current == null || current.isEmpty());
                 if (sel) {
                     selectedAssigned = true;
                 }
-                opt.add(Ui.option("", Attr.of().value("").selected(sel ? "selected" : null))
+                opt.add(ui.option("", Attr.of().value("").selected(sel ? "selected" : null))
                         .render(emptyText != null ? emptyText : ""));
             }
             for (AOption o : options) {
@@ -1727,11 +1720,11 @@ public final class Ui {
                 if (sel) {
                     selectedAssigned = true;
                 }
-                opt.add(Ui.option("", Attr.of().value(optId).selected(sel ? "selected" : null))
+                opt.add(ui.option("", Attr.of().value(optId).selected(sel ? "selected" : null))
                         .render(o.value != null ? o.value : ""));
             }
             if (!selectedAssigned && (current != null && !current.isEmpty())) {
-                opt.add(Ui.option("", Attr.of().value(current).selected("selected")).render(current));
+                opt.add(ui.option("", Attr.of().value(current).selected("selected")).render(current));
             }
 
             String selectClasses = Classes(INPUT, size, cssInput, disabled ? DISABLED : null);
@@ -1746,9 +1739,9 @@ public final class Ui {
             if (form != null && !form.isEmpty()) {
                 selectAttr.form(form);
             }
-            String sel = Ui.select(selectClasses, selectAttr).render(opt.toString());
+            String sel = ui.select(selectClasses, selectAttr).render(opt.toString());
             String wrapper = Classes(css, required ? "invalid-if" : null, error ? "invalid" : null);
-            return Ui.div(wrapper).render(lbl, sel);
+            return ui.div(wrapper).render(lbl, sel);
         }
     }
 
@@ -1987,7 +1980,7 @@ public final class Ui {
                 return "";
             }
             String id = makeId();
-            String lbl = Ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
+            String lbl = ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
             Attr attr = Attr.of()
                     .id(id)
                     .name(name)
@@ -2145,7 +2138,7 @@ public final class Ui {
                 return "";
             }
             String id = makeId();
-            String lbl = Ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
+            String lbl = ui.label(cssLabel, Attr.of().htmlFor(id).required(required)).render(labelText);
             Attr attr = Attr.of()
                     .id(id)
                     .name(name)
@@ -2693,14 +2686,14 @@ public final class Ui {
                     "transition-all",
                     "duration-200",
                     "group",
-                    Ui.If(isSeparated,
+                    ui.If(isSeparated,
                             () -> "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm"),
-                    Ui.If(!isSeparated && !Ghost.equals(variant),
+                    ui.If(!isSeparated && !Ghost.equals(variant),
                             () -> "bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-800/30"),
-                    Ui.If(Ghost.equals(variant), () -> "hover:bg-gray-100/50 dark:hover:bg-gray-800/30 rounded-lg"),
-                    Ui.If(!isSeparated && index > 0 && Bordered.equals(variant),
+                    ui.If(Ghost.equals(variant), () -> "hover:bg-gray-100/50 dark:hover:bg-gray-800/30 rounded-lg"),
+                    ui.If(!isSeparated && index > 0 && Bordered.equals(variant),
                             () -> "border-t border-gray-100 dark:border-gray-800"),
-                    Ui.If(isOpen, () -> "active-item"));
+                    ui.If(isOpen, () -> "active-item"));
 
             String iconClass = Classes(
                     "accordion-icon",
@@ -2712,22 +2705,22 @@ public final class Ui {
 
             String contentClass = Classes(
                     "accordion-content",
-                    Ui.If(isOpen, () -> "open"),
+                    ui.If(isOpen, () -> "open"),
                     "overflow-hidden",
                     "transition-all",
                     "duration-300",
                     "ease-in-out",
                     "px-5",
-                    Ui.If(isSeparated,
+                    ui.If(isSeparated,
                             () -> "bg-white dark:bg-gray-900 border-x border-b border-gray-100 dark:border-gray-800 rounded-b-lg -mt-2 pt-2 shadow-sm"),
-                    Ui.If(!isSeparated, () -> "bg-white dark:bg-gray-900"),
-                    Ui.If(Ghost.equals(variant), () -> "bg-transparent"));
+                    ui.If(!isSeparated, () -> "bg-white dark:bg-gray-900"),
+                    ui.If(Ghost.equals(variant), () -> "bg-transparent"));
 
             String maxHeight = isOpen ? "max-height: 1000px;" : "max-height: 0px;";
 
             String iconSvg = "<svg aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg>";
 
-            return div(Ui.If(isSeparated, () -> "mb-2")).render(
+            return div(ui.If(isSeparated, () -> "mb-2")).render(
                     div(headerClass).render(
                             div("font-bold text-gray-700 dark:text-gray-200 tracking-tight").render(title),
                             div(iconClass).render(iconSvg)),
@@ -2811,9 +2804,9 @@ public final class Ui {
             String containerClass = Classes(
                     "accordion",
                     "w-full",
-                    Ui.If(Bordered.equals(variant),
+                    ui.If(Bordered.equals(variant),
                             () -> "border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden"),
-                    Ui.If(Separated.equals(variant), () -> "flex flex-col gap-2"),
+                    ui.If(Separated.equals(variant), () -> "flex flex-col gap-2"),
                     css);
 
             return div(containerClass, Attr.of().id(id).dataAccordion(multipleValue())).render(
@@ -3023,7 +3016,7 @@ public final class Ui {
             String alertClasses = Classes(
                     styles.baseClasses,
                     "relative flex items-start gap-3 p-4 rounded-lg border shadow-sm",
-                    Ui.If(css != null && !css.isEmpty(), () -> css));
+                    ui.If(css != null && !css.isEmpty(), () -> css));
 
             String content = div(alertClasses, Attr.of().id(alertID)).render(
                     renderIcon(styles.iconHTML, styles.iconClasses),
@@ -3190,8 +3183,8 @@ public final class Ui {
 
                 String panelClass = Classes(
                         "tab-panel",
-                        Ui.If(!isActive, () -> "hidden opacity-0"),
-                        Ui.If(isActive, () -> "opacity-100"),
+                        ui.If(!isActive, () -> "hidden opacity-0"),
+                        ui.If(isActive, () -> "opacity-100"),
                         "transition-opacity duration-300 ease-in-out");
 
                 builder.append(String.format(
@@ -3330,7 +3323,7 @@ public final class Ui {
             boolean isVertical = Vertical.equals(style);
             String containerClass = Classes(
                     "w-full",
-                    Ui.If(isVertical, () -> "flex flex-col md:flex-row gap-6"),
+                    ui.If(isVertical, () -> "flex flex-col md:flex-row gap-6"),
                     css);
 
             builder.append(String.format("<div id=\"%s\" class=\"%s\" data-tabs-active=\"%d\" data-tabs-style=\"%s\">",
@@ -4534,7 +4527,7 @@ public final class Ui {
         }
 
         public Button Button() {
-            return Ui.Button().Form(FormId);
+            return ui.Button().Form(FormId);
         }
 
         public String Render() {
@@ -4727,7 +4720,7 @@ public final class Ui {
                 String cardClass = Classes(
                         "relative",
                         button,
-                        Ui.If(disabled, () -> "opacity-50 pointer-events-none"),
+                        ui.If(disabled, () -> "opacity-50 pointer-events-none"),
                         Or(checked, () -> buttonActive, () -> buttonInactive));
 
                 String onClickJs = String.format(
@@ -4842,7 +4835,7 @@ public final class Ui {
     }
 
     public static Target Target() {
-        return new Target(makeId());
+        return new Target();
     }
 
     public static String makeId() {

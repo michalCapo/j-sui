@@ -96,7 +96,7 @@ public final class Context {
         return app.Action(uid, action);
     }
 
-    public String Post(String as, Ui.Swap swap, Action action) {
+    public String Post(String as, ui.Swap swap, Action action) {
         String path = app.pathOf(action.method);
         if (path == null || path.isEmpty())
             path = "/__not_registered";
@@ -105,7 +105,7 @@ public final class Context {
         String js = """
                 (function(e){try{if(window.__post){return __post('%s','%s','%s','%s',e);} }catch(_){ } return false;})(event)"""
                 .formatted(normalizedAs, path, swap, tgt);
-        return Ui.Normalize(js);
+        return ui.Normalize(js);
     }
 
     public CallBuilder Call(Callable method, Object... values) {
@@ -113,28 +113,28 @@ public final class Context {
         final Context self = this;
         return new CallBuilder() {
             @Override
-            public String Render(Ui.Attr target) {
-                return self.Post("POST", Ui.Swap.inline, new Action(callable, target, values));
+            public String Render(ui.Attr target) {
+                return self.Post("POST", ui.Swap.inline, new Action(callable, target, values));
             }
 
             @Override
-            public String Replace(Ui.Attr target) {
-                return self.Post("POST", Ui.Swap.outline, new Action(callable, target, values));
+            public String Replace(ui.Attr target) {
+                return self.Post("POST", ui.Swap.outline, new Action(callable, target, values));
             }
 
             @Override
-            public String Append(Ui.Attr target) {
-                return self.Post("POST", Ui.Swap.append, new Action(callable, target, values));
+            public String Append(ui.Attr target) {
+                return self.Post("POST", ui.Swap.append, new Action(callable, target, values));
             }
 
             @Override
-            public String Prepend(Ui.Attr target) {
-                return self.Post("POST", Ui.Swap.prepend, new Action(callable, target, values));
+            public String Prepend(ui.Attr target) {
+                return self.Post("POST", ui.Swap.prepend, new Action(callable, target, values));
             }
 
             @Override
             public String None() {
-                return self.Post("POST", Ui.Swap.none, new Action(callable, null, values));
+                return self.Post("POST", ui.Swap.none, new Action(callable, null, values));
             }
         };
     }
@@ -144,42 +144,42 @@ public final class Context {
         final Context self = this;
         return new SubmitBuilder() {
             @Override
-            public Ui.Attr Render(Ui.Attr target) {
-                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.inline, new Action(callable, target, values)));
+            public ui.Attr Render(ui.Attr target) {
+                return ui.Attr.of().onsubmit(self.Post("FORM", ui.Swap.inline, new Action(callable, target, values)));
             }
 
             @Override
-            public Ui.Attr Replace(Ui.Attr target) {
-                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.outline, new Action(callable, target, values)));
+            public ui.Attr Replace(ui.Attr target) {
+                return ui.Attr.of().onsubmit(self.Post("FORM", ui.Swap.outline, new Action(callable, target, values)));
             }
 
             @Override
-            public Ui.Attr Append(Ui.Attr target) {
-                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.append, new Action(callable, target, values)));
+            public ui.Attr Append(ui.Attr target) {
+                return ui.Attr.of().onsubmit(self.Post("FORM", ui.Swap.append, new Action(callable, target, values)));
             }
 
             @Override
-            public Ui.Attr Prepend(Ui.Attr target) {
-                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.prepend, new Action(callable, target, values)));
+            public ui.Attr Prepend(ui.Attr target) {
+                return ui.Attr.of().onsubmit(self.Post("FORM", ui.Swap.prepend, new Action(callable, target, values)));
             }
 
             @Override
-            public Ui.Attr None() {
-                return Ui.Attr.of().onsubmit(self.Post("FORM", Ui.Swap.none, new Action(callable, null, values)));
+            public ui.Attr None() {
+                return ui.Attr.of().onsubmit(self.Post("FORM", ui.Swap.none, new Action(callable, null, values)));
             }
         };
     }
 
-    public Ui.Attr Load(String href) {
-        return Ui.Attr.of().onclick(Ui.Normalize("__load(\"%s\")".formatted(href)));
+    public ui.Attr Load(String href) {
+        return ui.Attr.of().onclick(ui.Normalize("__load(\"%s\")".formatted(href)));
     }
 
     public String Reload() {
-        return Ui.Normalize("<script>window.location.reload();</script>");
+        return ui.Normalize("<script>window.location.reload();</script>");
     }
 
     public String Redirect(String href) {
-        return Ui.Normalize("<script>window.location.href='%s';</script>".formatted(href));
+        return ui.Normalize("<script>window.location.href='%s';</script>".formatted(href));
     }
 
     public String Translate(String message, Object... val) {
@@ -211,21 +211,21 @@ public final class Context {
         displayError(message);
     }
 
-    public void Patch(Ui.Action target, String html) {
+    public void Patch(ui.Action target, String html) {
         Patch(target, html, null);
     }
 
-    public void Patch(Ui.Action target, String html, Runnable clear) {
+    public void Patch(ui.Action target, String html, Runnable clear) {
         if (target == null || target.id == null || target.id.isEmpty() || html == null)
             return;
 
-        String swap = target.swap != null ? target.swap.name() : Ui.Swap.inline.name();
+        String swap = target.swap != null ? target.swap.name() : ui.Swap.inline.name();
         if (clear != null && app != null) {
             app.registerClear(sessionID, target.id, clear);
         }
         if (patchSender != null) {
             String json = "{\"type\":\"patch\",\"id\":\"%s\",\"swap\":\"%s\",\"html\":\"%s\"}"
-                    .formatted(Ui.Normalize(target.id), swap, Ui.Normalize(html));
+                    .formatted(ui.Normalize(target.id), swap, ui.Normalize(html));
             try {
                 patchSender.send(sessionID, json);
             } catch (Exception ex) {
@@ -236,11 +236,11 @@ public final class Context {
         }
     }
 
-    public void Defer(Ui.Action target, Callable job) {
+    public void Defer(ui.Action target, Callable job) {
         Defer(target, job, null);
     }
 
-    public void Defer(Ui.Action target, Callable job, Runnable clear) {
+    public void Defer(ui.Action target, Callable job, Runnable clear) {
         if (job == null || target == null)
             return;
         Thread t = new Thread(() -> {
@@ -272,11 +272,11 @@ public final class Context {
         t.start();
     }
 
-    public void Repeat(Ui.Action target, long intervalMillis, Callable job) {
+    public void Repeat(ui.Action target, long intervalMillis, Callable job) {
         Repeat(target, intervalMillis, job, null);
     }
 
-    public void Repeat(Ui.Action target, long intervalMillis, Callable job, Runnable clear) {
+    public void Repeat(ui.Action target, long intervalMillis, Callable job, Runnable clear) {
         if (job == null || target == null)
             return;
 
@@ -316,11 +316,11 @@ public final class Context {
         t.start();
     }
 
-    public void Delay(Ui.Action target, long delayMillis, Callable job) {
+    public void Delay(ui.Action target, long delayMillis, Callable job) {
         Delay(target, delayMillis, job, null);
     }
 
-    public void Delay(Ui.Action target, long delayMillis, Callable job, Runnable clear) {
+    public void Delay(ui.Action target, long delayMillis, Callable job, Runnable clear) {
         if (job == null || target == null)
             return;
         final long wait = Math.max(0L, delayMillis);
@@ -376,25 +376,25 @@ public final class Context {
         String filename = (name == null || name.isEmpty()) ? "download" : name;
         String base64 = java.util.Base64.getEncoder().encodeToString(content);
         String href = "data:" + ct + ";base64," + base64;
-        String normalizedHref = Ui.Normalize(href);
-        String normalizedFilename = Ui.Normalize(filename);
+        String normalizedHref = ui.Normalize(href);
+        String normalizedFilename = ui.Normalize(filename);
         String js = """
                 (function(){var a=document.createElement('a');a.href='%s';a.download='%s';document.body.appendChild(a);a.click();\
                 setTimeout(function(){try{document.body.removeChild(a);}catch(_){}} ,0);} )();"""
                 .formatted(normalizedHref, normalizedFilename);
-        append.add(Ui.Script(js));
+        append.add(ui.Script(js));
     }
 
     private String patchScriptInline(String id, String swap, String html) {
-        String safe = Ui.Normalize(html);
-        String normalizedId = Ui.Normalize(id);
+        String safe = ui.Normalize(html);
+        String normalizedId = ui.Normalize(id);
         String s = """
                 (function(){var el=document.getElementById('%s'); if(!el) return;var h="%s";switch('%s'){\
                 case 'outline': el.outerHTML=h; break;\
                 case 'append': el.insertAdjacentHTML('beforeend', h); break;\
                 case 'prepend': el.insertAdjacentHTML('afterbegin', h); break;\
                 default: el.innerHTML=h; } })();""".formatted(normalizedId, safe, swap);
-        return Ui.Script(s);
+        return ui.Script(s);
     }
 
     public interface PatchSender {
@@ -404,7 +404,7 @@ public final class Context {
     private void displayMessage(String message, String color) {
         String escapedMessage = escapeJs(message != null ? message : "");
         String escapedColor = escapeJs(color != null ? color : "");
-        String script = Ui
+        String script = ui
                 .Script("""
                         (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
                         box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
@@ -424,7 +424,7 @@ public final class Context {
 
     private void displayError(String message) {
         String escapedMessage = escapeJs(message != null ? message : "");
-        String script = Ui
+        String script = ui
                 .Script("""
                         (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
                         box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
@@ -603,35 +603,35 @@ public final class Context {
     }
 
     public interface CallBuilder {
-        String Render(Ui.Attr target);
+        String Render(ui.Attr target);
 
-        String Replace(Ui.Attr target);
+        String Replace(ui.Attr target);
 
-        String Append(Ui.Attr target);
+        String Append(ui.Attr target);
 
-        String Prepend(Ui.Attr target);
+        String Prepend(ui.Attr target);
 
         String None();
     }
 
     public interface SubmitBuilder {
-        Ui.Attr Render(Ui.Attr target);
+        ui.Attr Render(ui.Attr target);
 
-        Ui.Attr Replace(Ui.Attr target);
+        ui.Attr Replace(ui.Attr target);
 
-        Ui.Attr Append(Ui.Attr target);
+        ui.Attr Append(ui.Attr target);
 
-        Ui.Attr Prepend(Ui.Attr target);
+        ui.Attr Prepend(ui.Attr target);
 
-        Ui.Attr None();
+        ui.Attr None();
     }
 
     public static final class Action {
         public final Callable method;
-        public final Ui.Attr target;
+        public final ui.Attr target;
         public final Object[] values;
 
-        public Action(Callable method, Ui.Attr target, Object... values) {
+        public Action(Callable method, ui.Attr target, Object... values) {
             this.method = method;
             this.target = target;
             this.values = values;

@@ -5,7 +5,7 @@ import java.util.List;
 import jsui.App;
 import jsui.Context;
 import jsui.Server;
-import jsui.Ui;
+import jsui.ui;
 import jsui.examples.pages.*;
 import lombok.NoArgsConstructor;
 
@@ -130,24 +130,24 @@ public final class Main {
                 String cls = active
                         ? base + " bg-blue-700 text-white hover:bg-blue-600"
                         : base + " hover:bg-gray-200";
-                Ui.Attr load = ctx.Load(route.path());
-                Ui.Attr attr = Ui.Attr.of().href(route.path());
+                ui.Attr load = ctx.Load(route.path());
+                ui.Attr attr = ui.Attr.of().href(route.path());
                 if (load != null && load.onclick != null) {
                     attr.onclick(load.onclick);
                 }
-                String anchor = Ui.a(cls, attr).render(route.title());
+                String anchor = ui.a(cls, attr).render(route.title());
                 if (links.length() > 0) {
                     links.append(' ');
                 }
                 links.append(anchor);
             }
-            String nav = Ui.div("bg-white shadow mb-6").render(
-                    Ui.div("max-w-5xl mx-auto px-4 py-2 flex items-center gap-2").render(
-                            Ui.div("flex flex-wrap gap-1 mt-2 md:mt-0").render(links.toString()),
-                            Ui.div("flex-1").render(),
-                            Ui.ThemeSwitcher("")));
+            String nav = ui.div("bg-white shadow mb-6").render(
+                    ui.div("max-w-5xl mx-auto px-4 py-2 flex items-center gap-2").render(
+                            ui.div("flex flex-wrap gap-1 mt-2 md:mt-0").render(links.toString()),
+                            ui.div("flex-1").render(),
+                            ui.ThemeSwitcher("")));
             String content = page.render(ctx);
-            return app.HTML(title, "bg-gray-100 min-h-screen", nav + Ui.div("max-w-5xl mx-auto px-2").render(content));
+            return app.HTML(title, "bg-gray-100 min-h-screen", nav + ui.div("max-w-5xl mx-auto px-2").render(content));
         };
     }
 }

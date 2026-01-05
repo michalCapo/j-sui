@@ -1,7 +1,7 @@
 package jsui.examples.pages;
 
 import jsui.Context;
-import jsui.Ui;
+import jsui.ui;
 
 public final class MarkdownPage {
     public static String render(Context ctx) {
@@ -25,9 +25,9 @@ public final class MarkdownPage {
                 "",
                 "That's it!");
 
-        String body = Ui.Markdown("prose max-w-none", md);
-        return Ui.div("max-w-full sm:max-w-3xl mx-auto flex flex-col gap-6").render(
-                Ui.div("text-3xl font-bold").render("Markdown"),
-                Ui.div("bg-white p-6 rounded-lg shadow").render(body));
+        String body = ui.Markdown("prose max-w-none", md);
+        return ui.div("max-w-full sm:max-w-3xl mx-auto flex flex-col gap-6").render(
+                ui.div("text-3xl font-bold").render("Markdown"),
+                ui.div("bg-white p-6 rounded-lg shadow").render(body));
     }
 }

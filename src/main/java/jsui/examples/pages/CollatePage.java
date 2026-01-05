@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import jsui.Context;
 import jsui.Data;
-import jsui.Ui;
+import jsui.ui;
 import jsui.examples.models.CollateRow;
 import jsui.examples.models.OrderSpec;
 
@@ -26,29 +26,29 @@ public final class CollatePage {
         collate.setExcel(buildExcel());
         collate.Row((row, index) -> renderRow(row));
 
-        String body = Ui.div("flex flex-col gap-4").render(
-                Ui.div("text-3xl font-bold").render("Data Collation"),
-                Ui.div("text-gray-600 mb-2")
+        String body = ui.div("flex flex-col gap-4").render(
+                ui.div("text-3xl font-bold").render("Data Collation"),
+                ui.div("text-gray-600 mb-2")
                         .render("Search, sort, filter, and paging over an in-memory dataset of 100 rows."),
                 collate.Render(ctx));
 
-        return Ui.div("flex flex-col gap-4").render(body);
+        return ui.div("flex flex-col gap-4").render(body);
     }
 
     private static String renderRow(CollateRow r) {
         String created = new java.text.SimpleDateFormat("yyyy-MM-dd").format(r.CreatedAt);
-        return Ui.div("bg-white rounded border border-gray-200 p-3 flex items-center gap-3").render(
-                Ui.div("w-12 text-right font-mono text-gray-500").render("#" + r.ID),
-                Ui.div("flex-1").render(
-                        Ui.div("font-semibold").render(
-                                r.Name + Ui.space
-                                        + Ui.div("inline text-gray-500 text-sm").render("(" + r.Role + ")")),
-                        Ui.div("text-gray-600 text-sm").render(r.Email + " · " + r.City)),
-                Ui.div("text-gray-500 text-sm").render(created),
-                Ui.div("ml-2").render(
-                        Ui.Button()
+        return ui.div("bg-white rounded border border-gray-200 p-3 flex items-center gap-3").render(
+                ui.div("w-12 text-right font-mono text-gray-500").render("#" + r.ID),
+                ui.div("flex-1").render(
+                        ui.div("font-semibold").render(
+                                r.Name + ui.space
+                                        + ui.div("inline text-gray-500 text-sm").render("(" + r.Role + ")")),
+                        ui.div("text-gray-600 text-sm").render(r.Email + " · " + r.City)),
+                ui.div("text-gray-500 text-sm").render(created),
+                ui.div("ml-2").render(
+                        ui.Button()
                                 .Class("w-20 text-center px-2 py-1 rounded")
-                                .Color(r.Active ? Ui.Green : Ui.Gray)
+                                .Color(r.Active ? ui.Green : ui.Gray)
                                 .Render(r.Active ? "Active" : "Inactive")));
     }
 
@@ -198,11 +198,11 @@ public final class CollatePage {
         role.Text = "Role";
         role.As = Data.SELECT;
         role.Options = List.of(
-                new Ui.AOption("", "All"),
-                new Ui.AOption("user", "User"),
-                new Ui.AOption("admin", "Admin"),
-                new Ui.AOption("manager", "Manager"),
-                new Ui.AOption("support", "Support"));
+                new ui.AOption("", "All"),
+                new ui.AOption("user", "User"),
+                new ui.AOption("admin", "Admin"),
+                new ui.AOption("manager", "Manager"),
+                new ui.AOption("support", "Support"));
         role.Dates = new Data.TFieldDates();
         fields.add(role);
 

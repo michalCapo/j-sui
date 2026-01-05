@@ -18,7 +18,7 @@ import jsui.Context.Callable;
  * (as attributes). It does not embed an HTTP server or WebSockets.
  */
 public final class App {
-    public final Ui.Target contentId;
+    public final ui.Target contentId;
     public String Language;
     public final List<String> HTMLHead = new ArrayList<>();
 
@@ -64,23 +64,25 @@ public final class App {
     private Thread cleanupThread;
 
     public App(String defaultLanguage) {
-        this.contentId = Ui.Target();
+        this.contentId = ui.Target();
         this.Language = defaultLanguage != null ? defaultLanguage : "en";
         HTMLHead.add("<meta charset=\"UTF-8\">");
         HTMLHead.add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-        HTMLHead.add("""
-                <style>html{scroll-behavior:smooth}.invalid,select:invalid,textarea:invalid,input:invalid{border-bottom-width:2px;border-bottom-color:red;border-bottom-style:dashed}\
-                @media (max-width:768px){input[type=\"date\"]{max-width:100%!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important}\
-                input[type=\"date\"]::-webkit-datetime-edit{max-width:100%!important;overflow:hidden!important}}</style>""");
+        HTMLHead.add(
+                """
+                        <style>html{scroll-behavior:smooth}.invalid,select:invalid,textarea:invalid,input:invalid{border-bottom-width:2px;border-bottom-color:red;border-bottom-style:dashed}\
+                        @media (max-width:768px){input[type=\"date\"]{max-width:100%!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important}\
+                        input[type=\"date\"]::-webkit-datetime-edit{max-width:100%!important;overflow:hidden!important}}</style>""");
 
         addTailwindScript();
 
-        HTMLHead.add("""
-                <style id="jsui-dark-overrides">html.dark{color-scheme:dark}.dark body{color:#e5e7eb}html.dark.bg-white,html.dark.bg-gray-100{background-color:#111827!important}\
-                .dark .bg-white,.dark .bg-gray-50,.dark .bg-gray-100{background-color:#111827!important}.dark .text-black,.dark .text-gray-900,.dark .text-gray-800,.dark .text-gray-700,\
-                .dark .text-gray-600,.dark .text-gray-500{color:#e5e7eb!important}.dark .text-gray-400,.dark .text-gray-300{color:#d1d5db!important}.dark .border-gray-100,.dark .border-gray-200,.dark .border-gray-300{border-color:#374151!important}\
-                .dark input,.dark select,.dark textarea{color:#e5e7eb!important;background-color:#1f2937!important}.dark input::placeholder,.dark textarea::placeholder{color:#9ca3af!important}\
-                .dark .hover\\:bg-gray-200:hover{background-color:#374151!important}</style>""");
+        HTMLHead.add(
+                """
+                        <style id="jsui-dark-overrides">html.dark{color-scheme:dark}.dark body{color:#e5e7eb}html.dark.bg-white,html.dark.bg-gray-100{background-color:#111827!important}\
+                        .dark .bg-white,.dark .bg-gray-50,.dark .bg-gray-100{background-color:#111827!important}.dark .text-black,.dark .text-gray-900,.dark .text-gray-800,.dark .text-gray-700,\
+                        .dark .text-gray-600,.dark .text-gray-500{color:#e5e7eb!important}.dark .text-gray-400,.dark .text-gray-300{color:#d1d5db!important}.dark .border-gray-100,.dark .border-gray-200,.dark .border-gray-300{border-color:#374151!important}\
+                        .dark input,.dark select,.dark textarea{color:#e5e7eb!important;background-color:#1f2937!important}.dark input::placeholder,.dark textarea::placeholder{color:#9ca3af!important}\
+                        .dark .hover\\:bg-gray-200:hover{background-color:#374151!important}</style>""");
 
         String coreJs = loadResource("jsui/jsui-core.js");
         if (coreJs != null) {
@@ -88,11 +90,12 @@ public final class App {
                     <script>%s</script>
                     """.formatted(coreJs));
         } else {
-            HTMLHead.add("""
-                    <script>(function(){function apply(mode){try{localStorage.setItem('theme',mode);}catch(e){}var root=document.documentElement;\
-                    var eff=(mode==='system')?((window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'):mode;\
-                    if(eff==='dark'){root.classList.add('dark');}else{root.classList.remove('dark');}};window.setTheme=apply;\
-                    try{apply(localStorage.getItem('theme')||'system');}catch(_){apply('light');}})();</script>""");
+            HTMLHead.add(
+                    """
+                            <script>(function(){function apply(mode){try{localStorage.setItem('theme',mode);}catch(e){}var root=document.documentElement;\
+                            var eff=(mode==='system')?((window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'):mode;\
+                            if(eff==='dark'){root.classList.add('dark');}else{root.classList.remove('dark');}};window.setTheme=apply;\
+                            try{apply(localStorage.getItem('theme')||'system');}catch(_){apply('light');}})();</script>""");
             HTMLHead.add(
                     """
                             <script>(function(){
@@ -512,13 +515,13 @@ public final class App {
     }
 
     public String HTML(String title, String bodyClass, String body) {
-        String cls = Ui.Classes(bodyClass);
+        String cls = ui.Classes(bodyClass);
         if (cls == null || cls.isEmpty()) {
             cls = "bg-gray-200";
         }
         StringBuilder head = new StringBuilder();
         head.append("<title>");
-        head.append(title != null ? HtmlUtils.escape(Ui.Trim(title)) : "");
+        head.append(title != null ? HtmlUtils.escape(ui.Trim(title)) : "");
         head.append("</title>");
         for (String item : HTMLHead) {
             if (item != null) {
@@ -528,15 +531,16 @@ public final class App {
         if (smoothNav) {
             head.append(__smoothnav());
         }
-        String titleEscaped = title != null ? HtmlUtils.escape(Ui.Trim(title)) : "";
+        String titleEscaped = title != null ? HtmlUtils.escape(ui.Trim(title)) : "";
         String headStr = head.toString();
         String bodyContent = body != null ? body : "";
-        return Ui.Trim("""
+        return ui.Trim("""
                 <!DOCTYPE html>
                 <html lang="%s" class="%s">
                 <head>%s%s</head>
                 <body id="%s" class="relative">%s</body>
-                </html>""".formatted(Language, cls, "<title>" + titleEscaped + "</title>", headStr, contentId.id, bodyContent));
+                </html>""".formatted(Language, cls, "<title>" + titleEscaped + "</title>", headStr, contentId.id,
+                bodyContent));
     }
 
     /** Enables or disables smooth client-side navigation. */
@@ -551,14 +555,15 @@ public final class App {
     }
 
     private String __smoothnav() {
-        return Ui.Script("""
-                (function(){try{if(window.__jsuiSmoothNavInit){return;}window.__jsuiSmoothNavInit=true;\
-                function isInternalLink(href){if(!href)return false;if(href.startsWith('#'))return false;if(href.startsWith('javascript:'))return false;\
-                if(href.startsWith('data:')||href.startsWith('mailto:'))return false;\
-                if(href.startsWith('http://')||href.startsWith('https://')){try{var linkUrl=new URL(href,window.location.href);return linkUrl.origin===window.location.origin;}catch(_){return false;}}\
-                return true;}document.addEventListener('click',function(e){var link=e.target.closest('a');if(!link)return;var href=link.getAttribute('href');if(!href)return;\
-                if(link.target&&link.target!=='_self')return;if(link.download)return;var onclickAttr=link.getAttribute('onclick');if(onclickAttr&&onclickAttr.trim().length>0)return;\
-                if(!isInternalLink(href))return;e.preventDefault();try{__load(href);}catch(_){window.location.href=href;}},true);}catch(_){}})();""");
+        return ui
+                .Script("""
+                        (function(){try{if(window.__jsuiSmoothNavInit){return;}window.__jsuiSmoothNavInit=true;\
+                        function isInternalLink(href){if(!href)return false;if(href.startsWith('#'))return false;if(href.startsWith('javascript:'))return false;\
+                        if(href.startsWith('data:')||href.startsWith('mailto:'))return false;\
+                        if(href.startsWith('http://')||href.startsWith('https://')){try{var linkUrl=new URL(href,window.location.href);return linkUrl.origin===window.location.origin;}catch(_){return false;}}\
+                        return true;}document.addEventListener('click',function(e){var link=e.target.closest('a');if(!link)return;var href=link.getAttribute('href');if(!href)return;\
+                        if(link.target&&link.target!=='_self')return;if(link.download)return;var onclickAttr=link.getAttribute('onclick');if(onclickAttr&&onclickAttr.trim().length>0)return;\
+                        if(!isInternalLink(href))return;e.preventDefault();try{__load(href);}catch(_){window.location.href=href;}},true);}catch(_){}})();""");
     }
 
     /**
@@ -582,7 +587,7 @@ public final class App {
             return;
         HTMLHead.add("""
                 <link rel="icon" href="%s" />
-                """.formatted(Ui.Trim(dataUrl)));
+                """.formatted(ui.Trim(dataUrl)));
     }
 
     /**
@@ -602,7 +607,7 @@ public final class App {
         String href = "%s/%s".formatted(pathOnly, name);
         HTMLHead.add("""
                 <link rel="icon" href="%s" />
-                """.formatted(Ui.Trim(href)));
+                """.formatted(ui.Trim(href)));
     }
 
     // Asset resolution (used by Server)

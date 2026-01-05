@@ -1,15 +1,15 @@
 package jsui.examples.pages;
 
 import jsui.Context;
-import jsui.Ui;
+import jsui.ui;
 import jsui.examples.models.LoginForm;
 import jsui.examples.models.CounterModel;
 
 public final class OthersPage {
     public static String render(Context ctx) {
-        return Ui.div("max-w-full sm:max-w-5xl mx-auto flex flex-col gap-10").render(
-                Ui.div("text-3xl font-bold").render("Other Components"),
-                Ui.div("text-gray-600").render("A miscellany of interactive and structural components."),
+        return ui.div("max-w-full sm:max-w-5xl mx-auto flex flex-col gap-10").render(
+                ui.div("text-3xl font-bold").render("Other Components"),
+                ui.div("text-gray-600").render("A miscellany of interactive and structural components."),
                 simpleCard("Deferred Content", DeferredComponent.render(ctx)),
                 simpleCard("Interactive Login", LoginComponent.render(ctx)),
                 simpleCard("Interactive Counter", CounterComponent.render(ctx, 10)),
@@ -17,8 +17,8 @@ public final class OthersPage {
     }
 
     private static String simpleCard(String title, String body) {
-        return Ui.div("flex flex-col gap-3").render(
-                Ui.div("text-xl font-bold border-b pb-2").render(title),
+        return ui.div("flex flex-col gap-3").render(
+                ui.div("text-xl font-bold border-b pb-2").render(title),
                 body);
     }
 
@@ -26,17 +26,17 @@ public final class OthersPage {
         private static final String BUTTON_CLASS = "rounded whitespace-nowrap";
 
         public static String render(Context ctx) {
-            return Ui.div("flex flex-col sm:flex-row gap-2").render(
-                    Ui.Button().Color(Ui.Blue).Class(BUTTON_CLASS)
+            return ui.div("flex flex-col sm:flex-row gap-2").render(
+                    ui.Button().Color(ui.Blue).Class(BUTTON_CLASS)
                             .Click(ctx.Call(HelloComponent::sayHello).None())
                             .Render("Say Hello"),
-                    Ui.Button().Color(Ui.Gray).Class(BUTTON_CLASS)
+                    ui.Button().Color(ui.Gray).Class(BUTTON_CLASS)
                             .Click(ctx.Call(HelloComponent::sayDelay).None())
                             .Render("Delayed Response (2s)"),
-                    Ui.Button().Color(Ui.Yellow).Class(BUTTON_CLASS)
+                    ui.Button().Color(ui.Yellow).Class(BUTTON_CLASS)
                             .Click(ctx.Call(HelloComponent::sayError).None())
                             .Render("Return Error"),
-                    Ui.Button().Color(Ui.Red).Class(BUTTON_CLASS)
+                    ui.Button().Color(ui.Red).Class(BUTTON_CLASS)
                             .Click(ctx.Call(HelloComponent::sayCrash).None())
                             .Render("Crash Server"));
         }
@@ -89,23 +89,23 @@ public final class OthersPage {
         }
 
         private static String renderCounter(Context ctx, CounterModel model) {
-            Ui.Target target = Ui.Target();
-            return Ui.div("flex items-center gap-4 bg-gray-50 p-6 rounded-lg border w-fit",
-                    Ui.targetAttr(target)).render(
-                            Ui.Button().Color(Ui.RedOutline).Class("rounded-full w-10 h-10")
-                                    .Click(ctx.Call(CounterComponent::decrement, model).Replace(Ui.targetAttr(target)))
+            ui.Target target = ui.Target();
+            return ui.div("flex items-center gap-4 bg-gray-50 p-6 rounded-lg border w-fit",
+                    target.id()).render(
+                            ui.Button().Color(ui.RedOutline).Class("rounded-full w-10 h-10")
+                                    .Click(ctx.Call(CounterComponent::decrement, model).Replace(target.id()))
                                     .Render("-"),
-                            Ui.div("text-2xl font-mono font-bold w-12 text-center")
+                            ui.div("text-2xl font-mono font-bold w-12 text-center")
                                     .render(Integer.toString(model.Count)),
-                            Ui.Button().Color(Ui.BlueOutline).Class("rounded-full w-10 h-10")
-                                    .Click(ctx.Call(CounterComponent::increment, model).Replace(Ui.targetAttr(target)))
+                            ui.Button().Color(ui.BlueOutline).Class("rounded-full w-10 h-10")
+                                    .Click(ctx.Call(CounterComponent::increment, model).Replace(target.id()))
                                     .Render("+"));
         }
 
     }
 
     public static final class LoginComponent {
-        private static final Ui.Target target = Ui.Target();
+        private static final ui.Target target = ui.Target();
 
         public static String render(Context ctx) {
             return render(ctx, new LoginForm(), null);
@@ -117,37 +117,37 @@ public final class OthersPage {
             if (!"user".equals(form.Name) || !"password".equals(form.Password)) {
                 return render(ctx, form, "Invalid credentials");
             }
-            return Ui.div("text-green-600 max-w-md p-8 text-center font-bold rounded-lg bg-white shadow-xl")
+            return ui.div("text-green-600 max-w-md p-8 text-center font-bold rounded-lg bg-white shadow-xl")
                     .render("Success");
         }
 
         private static String render(Context ctx, LoginForm form, String error) {
             String errHtml = "";
             if (error != null) {
-                errHtml = Ui.div("text-red-600 p-4 rounded text-center border-4 border-red-600 bg-white")
+                errHtml = ui.div("text-red-600 p-4 rounded text-center border-4 border-red-600 bg-white")
                         .render(error);
             }
-            return Ui.form("border flex flex-col gap-4 max-w-md bg-white p-8 rounded-lg shadow-xl",
-                    Ui.targetAttr(target), ctx.Submit(LoginComponent::submit).Replace(Ui.targetAttr(target)))
+            return ui.form("border flex flex-col gap-4 max-w-md bg-white p-8 rounded-lg shadow-xl",
+                    target.id(), ctx.Submit(LoginComponent::submit).Replace(target.id()))
                     .render(
                             errHtml,
-                            Ui.IText("Name", form).Required().Render("Name"),
-                            Ui.IPassword("Password", form).Required().Render("Password"),
-                            Ui.Button().Submit().Color(Ui.Blue).Class("rounded").Render("Login"));
+                            ui.IText("Name", form).Required().Render("Name"),
+                            ui.IPassword("Password", form).Required().Render("Password"),
+                            ui.Button().Submit().Color(ui.Blue).Class("rounded").Render("Login"));
         }
 
     }
 
     public static final class DeferredComponent {
         public static String render(Context ctx) {
-            Ui.Target target = Ui.Target();
+            ui.Target target = ui.Target();
             // One-shot delayed patch using the new helper; auto-cancellable on navigation
-            ctx.Delay(target.Replace, 1000, c -> Ui.div("bg-white rounded-lg shadow p-4").render(
-                    Ui.div("text-green-700 font-semibold").render("Deferred content ready"),
-                    Ui.div("text-gray-600")
+            ctx.Delay(target.Replace, 1000, c -> ui.div("bg-white rounded-lg shadow p-4").render(
+                    ui.div("text-green-700 font-semibold").render("Deferred content ready"),
+                    ui.div("text-gray-600")
                             .render("This content was rendered asynchronously and delivered via live patch.")));
-            return Ui.div("space-y-4", Ui.targetAttr(target)).render(
-                    target.Skeleton(Ui.SkeletonType.component));
+            return ui.div("space-y-4", target.id()).render(
+                    target.Skeleton(ui.SkeletonType.component));
         }
     }
 }
