@@ -118,10 +118,10 @@ public final class Server implements AutoCloseable {
                     shutdownTimeout);
             http.setPatchSender((sessionId, message) -> http.sendToSession(sessionId, message));
             final String wsBoot = """
-                    (function(){try{var bannerId='jsui_offline_banner';\
+                    (function(){try{var bannerId='jsui_offline_banner';var wasDisconnected=false;\
                     function getSession(){try{var ca=document.cookie.split(';');for(var i=0;i<ca.length;i++){var c=ca[i];while(c.charAt(0)==' ')c=c.substring(1);\
                     if(c.indexOf('jsui_session=')===0)return c.substring('jsui_session='.length,c.length);}}catch(_){}return '';}\
-                    function show(){var el=document.getElementById(bannerId);if(!el){el=document.createElement('div');el.id=bannerId;el.className='fixed top-3 left-3 z-50';\
+                    function show(){wasDisconnected=true;var el=document.getElementById(bannerId);if(!el){el=document.createElement('div');el.id=bannerId;el.className='fixed top-3 left-3 z-50';\
                     el.innerHTML='<div class="px-4 py-2 rounded-full bg-red-500 text-white shadow-lg ring-1 ring-white/20 backdrop-blur flex items-center gap-3"><span class="font-bold">Offline</span>\
                     <span class="opacity-90">Trying to reconnect\u2026</span></div>';document.body.appendChild(el);}else{el.style.display='';}\
                     document.body.classList.add('jsui-offline');}\
@@ -135,7 +135,7 @@ public final class Server implements AutoCloseable {
                     else{el.innerHTML=html;}}catch(_){}}\
                     function connect(d){setTimeout(function(){var s=getSession();var url=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/';\
                     if(s)url+='?s='+encodeURIComponent(s);ws=new WebSocket(url);\
-                    ws.onopen=function(){hide();try{ws.send(JSON.stringify({type:'ping'}));}catch(_){}};\
+                    ws.onopen=function(){hide();if(wasDisconnected){try{window.location.reload();}catch(_){}}try{ws.send(JSON.stringify({type:'ping'}));}catch(_){}};\
                     ws.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m.type==='patch'){handlePatch(m);}else if(m.type==='ping'){try{ws.send(JSON.stringify({type:'pong'}));}catch(_){}}}catch(_){}};\
                     ws.onerror=function(){try{ws.close();}catch(_){}};ws.onclose=function(){show();connect(Math.min((d||250)*2,5000));};},d||0);}\
                     var ws; if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){connect(0);});}else{connect(0);}\

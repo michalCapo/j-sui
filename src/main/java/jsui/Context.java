@@ -328,8 +328,10 @@ public final class Context {
     public void Delay(ui.Action target, long delayMillis, Callable job, Runnable clear) {
         if (job == null || target == null)
             return;
+
         final long wait = Math.max(0L, delayMillis);
-        Thread t = new Thread(() -> {
+
+        Runnable r = () -> {
             try {
                 Thread.sleep(wait);
                 if (Thread.currentThread().isInterrupted())
@@ -344,7 +346,10 @@ public final class Context {
                 Thread.currentThread().interrupt();
             } catch (Exception ignored) {
             }
-        }, "jsui-delay");
+        };
+
+        Thread t = new Thread(r, "jsui-delay");
+
         if (app != null) {
             app.registerClear(sessionID, target.id, () -> {
                 try {
@@ -359,6 +364,7 @@ public final class Context {
                 }
             });
         }
+
         t.start();
     }
 

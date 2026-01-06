@@ -141,11 +141,12 @@ public final class OthersPage {
     public static final class DeferredComponent {
         public static String render(Context ctx) {
             ui.Target target = ui.Target();
-            // One-shot delayed patch using the new helper; auto-cancellable on navigation
+
             ctx.Delay(target.Replace, 1000, c -> ui.div("bg-white rounded-lg shadow p-4").render(
                     ui.div("text-green-700 font-semibold").render("Deferred content ready"),
                     ui.div("text-gray-600")
                             .render("This content was rendered asynchronously and delivered via live patch.")));
+
             return ui.div("space-y-4", target.id()).render(
                     target.Skeleton(ui.SkeletonType.component));
         }
