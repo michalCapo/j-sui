@@ -354,9 +354,11 @@ public final class App {
         switch (tailwindMode) {
             case CDN:
                 HTMLHead.add("<script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script>");
+                HTMLHead.add("<style type=\"text/tailwindcss\">@custom-variant dark (&:where(.dark, .dark *));</style>");
                 break;
             case SELF_HOSTED:
                 HTMLHead.add("<script src=\"/assets/tailwind.js\"></script>");
+                HTMLHead.add("<style type=\"text/tailwindcss\">@custom-variant dark (&:where(.dark, .dark *));</style>");
                 break;
             case NONE:
                 break;

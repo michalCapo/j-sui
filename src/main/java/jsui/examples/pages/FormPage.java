@@ -38,9 +38,12 @@ public final class FormPage {
                 new ui.AOption("female", "Female"),
                 new ui.AOption("other", "Other"));
         List<ui.AOption> numbers = List.of(
-                new ui.AOption("1", ui.div("h-10 py-2 px-4 rounded-md border border-gray-300").render("1")),
-                new ui.AOption("2", ui.div("h-10 py-2 px-4 rounded-md border border-gray-300").render("2")),
-                new ui.AOption("3", ui.div("h-10 py-2 px-4 rounded-md border border-gray-300").render("3")));
+                new ui.AOption("1",
+                        ui.div("h-10 py-2 px-4 rounded-md border border-gray-300 dark:border-gray-600").render("1")),
+                new ui.AOption("2",
+                        ui.div("h-10 py-2 px-4 rounded-md border border-gray-300 dark:border-gray-600").render("2")),
+                new ui.AOption("3",
+                        ui.div("h-10 py-2 px-4 rounded-md border border-gray-300 dark:border-gray-600").render("3")));
         List<ui.AOption> countries = List.of(
                 new ui.AOption("1", "USA"),
                 new ui.AOption("2", "Slovakia"),
@@ -49,15 +52,16 @@ public final class FormPage {
 
         return ui.div("max-w-5xl mx-auto flex flex-col gap-4", target.id()).render(
                 ui.div("text-2xl font-bold").render("Form association"),
-                ui.div("text-gray-600").render(
+                ui.div("text-gray-600 dark:text-gray-400").render(
                         "Form input fields and submit button is defined outside html form element. This is useful when you want to reuse to form in multiple places."),
-                ui.div("border rounded-lg p-4 bg-white dark:bg-gray-900 shadow-lg border rounded-lg flex flex-col gap-4")
+                ui.div("border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow-lg flex flex-col gap-4")
                         .render(
                                 ui.div("flex flex-col").render(
-                                        ui.div("text-lg font-semibold").render("Form creation example"),
-                                        ui.div("text-gray-600 text-sm mb-4")
+                                        ui.div("text-lg font-semibold text-gray-900 dark:text-white")
+                                                .render("Form creation example"),
+                                        ui.div("text-gray-600 dark:text-gray-400 text-sm mb-4")
                                                 .render("Form example with input fields and submit button.")),
-                                ui.div("flex flex-col").render(result),
+                                ui.div("flex flex-col text-gray-700 dark:text-gray-200").render(result),
                                 form.Render(),
                                 form.Text("Title", data).Required().Render("Title"),
                                 form.Radio("GenderNext", data).Value("male").Render("Male"),

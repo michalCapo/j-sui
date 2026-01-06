@@ -141,13 +141,14 @@ public final class Main {
                 }
                 links.append(anchor);
             }
-            String nav = ui.div("bg-white shadow mb-6").render(
+            String nav = ui.div("bg-white dark:bg-gray-900 shadow mb-6").render(
                     ui.div("max-w-5xl mx-auto px-4 py-2 flex items-center gap-2").render(
                             ui.div("flex flex-wrap gap-1 mt-2 md:mt-0").render(links.toString()),
                             ui.div("flex-1").render(),
                             ui.ThemeSwitcher("")));
             String content = page.render(ctx);
-            return app.HTML(title, "bg-gray-100 min-h-screen", nav + ui.div("max-w-5xl mx-auto px-2").render(content));
+            return app.HTML(title, "bg-gray-100 dark:bg-gray-950 min-h-screen",
+                    nav + ui.div("max-w-5xl mx-auto px-2").render(content));
         };
     }
 }
