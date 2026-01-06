@@ -225,15 +225,20 @@ public final class Context {
         }
         if (patchSender != null) {
             String json = "{\"type\":\"patch\",\"id\":\"%s\",\"swap\":\"%s\",\"html\":\"%s\"}"
-                    .formatted(ui.Normalize(target.id), swap, ui.Normalize(html));
+                    .formatted(ui.Normalize(target.id), swap, ui.EscapeJson(html));
             try {
                 patchSender.send(sessionID, json);
+                return;
             } catch (Exception ex) {
-                append.add(patchScriptInline(target.id, swap, html));
+                // WebSocket not connected yet or other error.
+                // For background threads (Repeat/Delay/Defer), the loop will retry.
+                // For synchronous rendering, fall through to inline script below.
             }
-        } else {
-            append.add(patchScriptInline(target.id, swap, html));
         }
+        // Fallback: inline script for synchronous HTTP responses
+        // (This is ignored for background threads since the response has already been
+        // sent)
+        append.add(patchScriptInline(target.id, swap, html));
     }
 
     public void Defer(ui.Action target, Callable job) {

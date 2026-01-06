@@ -172,15 +172,17 @@ public final class Server implements AutoCloseable {
 
         void sendToSession(String sessionId, String message) throws IOException {
             if (sessionId == null || sessionId.isEmpty())
-                return;
+                throw new IOException("session ID is null or empty");
             Set<WebSocketConnection> set = wsBySession.get(sessionId);
-            if (set == null)
-                return;
+            if (set == null || set.isEmpty())
+                throw new IOException("no WebSocket connection for session: " + sessionId);
             for (WebSocketConnection c : set) {
                 if (c.isOpen()) {
                     c.sendText(message);
+                    return; // Successfully sent to at least one connection
                 }
             }
+            throw new IOException("no open WebSocket connection for session: " + sessionId);
         }
 
         HttpService(App app, InetSocketAddress address, int backlog, Duration shutdownTimeout) {
