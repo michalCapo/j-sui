@@ -68,9 +68,52 @@
         setTimeout(close, 5000);
     };
 
+    // Submit handler - called directly from form onsubmit
+    window.__submit = function (path, swap, id, e) {
+        try {
+            if (e) {
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            }
+            var f = null;
+            if (e && e.target) {
+                if (e.target.tagName === 'FORM') {
+                    f = e.target;
+                } else if (e.target.closest && e.target.closest('form')) {
+                    f = e.target.closest('form');
+                }
+            }
+            if (!f || f.tagName !== 'FORM') return false;
+            var fd = new FormData(f);
+            var pairs = [];
+            fd.forEach(function (v, k) {
+                pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+            });
+            var opts = {
+                method: 'POST',
+                headers: {'content-type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                body: pairs.join('&')
+            };
+            fetch(path, opts)
+                .then(function (r) {return r.text();})
+                .then(function (t) {__applySwap(id, swap, t);})
+                .catch(function () {});
+            return false;
+        } catch (err) {
+            console.error('__submit error:', err);
+            return false;
+        }
+    };
+
     // POST/Submit handler
     window.__post = function (as, path, swap, id, e) {
         try {
+            if (e) {
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            }
             var opts = {method: 'POST'};
             if (as === 'FORM') {
                 var f = null;
@@ -85,7 +128,10 @@
                         f = e.submitter.form;
                     }
                 }
-                if (!f || f.tagName !== 'FORM') return false;
+                if (!f || f.tagName !== 'FORM') {
+                    console.error('__post FORM: could not find form element');
+                    return false;
+                }
                 var fd = new FormData(f);
                 var pairs = [];
                 fd.forEach(function (v, k) {
@@ -97,9 +143,10 @@
             fetch(path, opts)
                 .then(function (r) {return r.text();})
                 .then(function (t) {__applySwap(id, swap, t);})
-                .catch(function () {});
+                .catch(function (err) {console.error('__post fetch error:', err);});
             return false;
-        } catch (_) {
+        } catch (err) {
+            console.error('__post error:', err);
             return false;
         }
     };

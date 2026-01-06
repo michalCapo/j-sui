@@ -417,16 +417,16 @@ public final class ui {
                 .formatted(id, cssClasses, desktop);
 
         String script = """
-                <script>(function(){var btn=document.getElementById("%s"); if(!btn) return;\
-                var modes=["system","light","dark"]; function getPref(){ try { return localStorage.getItem("theme")||"system"; } catch(_) { return "system"; } }\
-                function resolve(mode){ if(mode==="system"){ try { return (window.matchMedia && window.matchMedia("(prefers-color-scheme: %%d)").matches)?"dark":"light"; } catch(_) { return "light"; } } return mode; }\
-                function setMode(mode){ try { if (typeof setTheme === "function") setTheme(mode); } catch(_){} }\
-                function labelFor(mode){ return mode==="system"?"Auto":(mode.charAt(0).toUpperCase()+mode.slice(1)); }\
-                function iconFor(effective){ if(effective==="dark"){ return `%s`; } if(effective==="light"){ return `%s`; } return `%s`; }\
-                function render(){ var pref=getPref(); var eff=resolve(pref); var icon=iconFor(eff); var i=btn.querySelector(".icon"); if(i){ i.innerHTML=icon; } var l=btn.querySelector(".label"); if(l){ l.textContent=labelFor(pref); } }\
+                <script>(function(){var btn=document.getElementById("%s");if(!btn)return;\
+                var modes=["system","light","dark"];function getPref(){try{return localStorage.getItem("theme")||"system";}catch(_){return"system";}}\
+                function resolve(mode){if(mode==="system"){try{return(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";}catch(_){return"light";}}return mode;}\
+                function setMode(mode){try{if(typeof setTheme==="function")setTheme(mode);}catch(_){}}\
+                function labelFor(mode){return mode==="system"?"Auto":(mode.charAt(0).toUpperCase()+mode.slice(1));}\
+                function iconFor(effective){if(effective==="dark"){return`%s`;}if(effective==="light"){return`%s`;}return`%s`;}\
+                function render(){var pref=getPref();var eff=resolve(pref);var icon=iconFor(eff);var i=btn.querySelector(".icon");if(i){i.innerHTML=icon;}var l=btn.querySelector(".label");if(l){l.textContent=labelFor(pref);}}\
                 render();\
-                btn.addEventListener("click", function(){ var pref=getPref(); var idx=modes.indexOf(pref); var next=modes[(idx+1)%%modes.length]; setMode(next); render(); });\
-                try { if (window.matchMedia){ window.matchMedia("(prefers-color-scheme: %%d)").addEventListener("change", function(){ if(getPref()==="system"){ render(); } }); } } catch(_){ }\
+                btn.addEventListener("click",function(){var pref=getPref();var idx=modes.indexOf(pref);var next=modes[(idx+1)%%modes.length];setMode(next);render();});\
+                try{if(window.matchMedia){window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){if(getPref()==="system"){render();}});}}catch(_){}\
                 })();</script>"""
                 .formatted(id, moon, sun, desktop);
 
@@ -656,7 +656,7 @@ public final class ui {
             String js = """
                     setTimeout(function(){var root=document.getElementById('%s');var canvas=document.getElementById('%s');if(!canvas){return;}var ctx=canvas.getContext('2d');if(!ctx){return;}\
                     var input=document.querySelector('input[name="%s"]');var hiddenField=document.getElementById('%s');var container=document.getElementById('%s');\
-                    var captchaText=%s;var successPath=%s;var defaultSuccess=%s;var solved=false;\
+                    var captchaText="%s";var successPath="%s";var defaultSuccess="%s";var solved=false;\
                     function injectSuccess(html){if(!root){return;}var output=(html&&html.trim())?html:defaultSuccess;root.innerHTML=output;}\
                     function sizeCanvas(){if(solved){return;}var ratio=window.devicePixelRatio||1;var displayWidth=Math.min(320,canvas.clientWidth||320);var displayHeight=96;\
                     canvas.width=Math.floor(displayWidth*ratio);canvas.height=Math.floor(displayHeight*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);canvas.style.width=displayWidth+'px';canvas.style.height=displayHeight+'px';}\
@@ -855,7 +855,7 @@ public final class ui {
             String js = """
                     setTimeout(function(){var root=document.getElementById('%s');var tilesContainer=document.getElementById('%s');var targetContainer=document.getElementById('%s');\
                     var arrangementInput=document.getElementById('%s');var verifiedInput=document.getElementById('%s');if(!root||!tilesContainer){return;}\
-                    var captchaText=%s;var scrambled=%s;var successPath=%s;var defaultSuccess=%s;var solved=false;\
+                    var captchaText="%s";var scrambled="%s";var successPath="%s";var defaultSuccess="%s";var solved=false;\
                     var tiles=scrambled?scrambled.split(''):[];if(!tiles.length){tiles=captchaText.split('');}var uniqueChars={};\
                     captchaText.split('').forEach(function(c){uniqueChars[c]=true;});if(tiles.join('')===captchaText&&Object.keys(uniqueChars).length>1){tiles=captchaText.split('').reverse();}\
                     function renderTarget(){if(!targetContainer){return;}targetContainer.innerHTML='';captchaText.split('').forEach(function(char){\
@@ -1213,8 +1213,51 @@ public final class ui {
     }
 
     public static Runnable Interval(long timeoutMillis, Runnable callback) {
-        return () -> {
-        };
+        return new IntervalRunner(timeoutMillis, callback);
+    }
+
+    private static final class IntervalRunner implements Runnable {
+        private final long timeoutMillis;
+        private final Runnable callback;
+        private volatile Thread thread;
+        private volatile boolean running = false;
+
+        IntervalRunner(long timeoutMillis, Runnable callback) {
+            this.timeoutMillis = Math.max(1, timeoutMillis);
+            this.callback = callback;
+        }
+
+        @Override
+        public void run() {
+            if (running) {
+                return;
+            }
+            running = true;
+            thread = new Thread(() -> {
+                while (running) {
+                    try {
+                        if (callback != null) {
+                            callback.run();
+                        }
+                        Thread.sleep(timeoutMillis);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    } catch (Exception e) {
+                        // Continue running even if callback fails
+                    }
+                }
+            }, "ui-Interval-" + Integer.toHexString(System.identityHashCode(this)));
+            thread.setDaemon(true);
+            thread.start();
+        }
+
+        public void stop() {
+            running = false;
+            if (thread != null) {
+                thread.interrupt();
+            }
+        }
     }
 
     public static InputText IText(String name, Object data) {
@@ -4695,7 +4738,30 @@ public final class ui {
 
         private String currentValue() {
             Object resolved = getPath(data, name);
-            return resolved != null ? String.valueOf(resolved) : "";
+            if (resolved == null) {
+                return "";
+            }
+            // Return "2" instead of "2.0" for numeric values
+            if (resolved instanceof Integer) {
+                return String.valueOf((Integer) resolved);
+            }
+            if (resolved instanceof Long) {
+                return String.valueOf((Long) resolved);
+            }
+            if (resolved instanceof Short) {
+                return String.valueOf((Short) resolved);
+            }
+            if (resolved instanceof Byte) {
+                return String.valueOf((Byte) resolved);
+            }
+            if (resolved instanceof Float || resolved instanceof Double) {
+                double d = ((Number) resolved).doubleValue();
+                if (d == (long) d) {
+                    return String.valueOf((long) d);
+                }
+                return String.valueOf(resolved);
+            }
+            return String.valueOf(resolved);
         }
 
         public String Render(String labelText) {
@@ -4723,28 +4789,28 @@ public final class ui {
                         ui.If(disabled, () -> "opacity-50 pointer-events-none"),
                         Or(checked, () -> buttonActive, () -> buttonInactive));
 
-                String onClickJs = String.format(
-                        "var cards=document.querySelectorAll('[target=%s]');" +
-                                "cards.forEach(function(card){" +
-                                "card.classList.value='%s';" +
-                                "var radio=card.querySelector('input[type=\"radio\"]');" +
-                                "if(radio)radio.checked=false;" +
-                                "});" +
-                                "event.currentTarget.classList.value='%s';" +
-                                "var radio=event.currentTarget.querySelector('input[type=\"radio\"]');" +
-                                "if(radio){" +
-                                "radio.checked=true;" +
-                                "var el=document.getElementById('%s');" +
-                                "if(el!=null){" +
-                                "el.value='%s';" +
-                                "el.dispatchEvent(new Event('change'));" +
-                                "}" +
-                                "}",
-                        target.id,
-                        Classes("relative", button, buttonInactive),
-                        Classes("relative", button, buttonActive),
-                        target.id,
-                        escapeJs(escapeAttr(option.id != null ? option.id : "")));
+                String onClickJs = """
+                        var cards=document.querySelectorAll('[target=%s]');
+                        cards.forEach(function(card){
+                            card.classList.value='%s';
+                            var radio=card.querySelector('input[type="radio"]');
+                            if(radio)radio.checked=false;
+                        });
+                        event.currentTarget.classList.value='%s';
+                        var radio=event.currentTarget.querySelector('input[type="radio"]');
+                        if(radio){
+                            radio.checked=true;
+                            var el=document.getElementById('%s');
+                            if(el!=null){
+                                el.value='%s';
+                                el.dispatchEvent(new Event('change'));
+                            }
+                        }""".formatted(
+                        escapeJs(target.id),
+                        escapeJs(Classes("relative", button, buttonInactive)),
+                        escapeJs(Classes("relative", button, buttonActive)),
+                        escapeJs(target.id),
+                        escapeJs(option.id != null ? option.id : ""));
 
                 Attr radioAttr = Attr.of()
                         .type("radio")
@@ -4756,7 +4822,7 @@ public final class ui {
                         .disabled(disabled)
                         .onchange(String.format(
                                 "var el=document.getElementById('%s');if(el==null)return;el.value='%s';el.dispatchEvent(new Event('change'));",
-                                target.id, escapeJs(escapeAttr(option.id != null ? option.id : ""))));
+                                escapeJs(target.id), escapeJs(option.id != null ? option.id : "")));
                 if (form != null && !form.isEmpty()) {
                     radioAttr.form(form);
                 }

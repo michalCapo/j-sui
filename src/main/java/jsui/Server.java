@@ -118,24 +118,31 @@ public final class Server implements AutoCloseable {
                     shutdownTimeout);
             http.setPatchSender((sessionId, message) -> http.sendToSession(sessionId, message));
             final String wsBoot = """
-                    (function(){try{var url=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/';var bannerId='jsui_offline_banner';\
+                    (function(){try{var bannerId='jsui_offline_banner';\
+                    function getSession(){try{var ca=document.cookie.split(';');for(var i=0;i<ca.length;i++){var c=ca[i];while(c.charAt(0)==' ')c=c.substring(1);\
+                    if(c.indexOf('jsui_session=')===0)return c.substring('jsui_session='.length,c.length);}}catch(_){}return '';}\
                     function show(){var el=document.getElementById(bannerId);if(!el){el=document.createElement('div');el.id=bannerId;el.className='fixed top-3 left-3 z-50';\
-                    el.innerHTML='<div class\\"px-4 py-2 rounded-full bg-red-500 text-white shadow-lg ring-1 ring-white/20 backdrop-blur flex items-center gap-3\\"><span class\\"font-bold\\">Offline</span>\
-                    <span class\\"opacity-90\\">Trying to reconnect…</span></div>';document.body.appendChild(el);}else{el.style.display='';}}\
-                    function hide(){var el=document.getElementById(bannerId);if(el){el.style.display='none';}}\
+                    el.innerHTML='<div class="px-4 py-2 rounded-full bg-red-500 text-white shadow-lg ring-1 ring-white/20 backdrop-blur flex items-center gap-3"><span class="font-bold">Offline</span>\
+                    <span class="opacity-90">Trying to reconnect\u2026</span></div>';document.body.appendChild(el);}else{el.style.display='';}\
+                    document.body.classList.add('jsui-offline');}\
+                    function hide(){var el=document.getElementById(bannerId);if(el){el.style.display='none';}document.body.classList.remove('jsui-offline');}\
                     function markSeen(id){try{window.__jsuiSeen=window.__jsuiSeen||{};window.__jsuiSeen[id]=true;}catch(_){}}\
                     function wasSeen(id){try{return !!(window.__jsuiSeen&&window.__jsuiSeen[id]);}catch(_){return false;}}\
                     function handlePatch(msg){try{var id=String(msg.id||'');var el=document.getElementById(id);if(!el){if(wasSeen(id)){try{ws&&ws.readyState===1&&ws.send(JSON.stringify({type:'invalid',id:id}));}catch(_){}}return;}\
                     markSeen(id);var html=String(msg.html||'');try{var tpl=document.createElement('template');tpl.innerHTML=html;var scripts=tpl.content.querySelectorAll('script');\
                     for(var i=0;i<scripts.length;i++){var s=document.createElement('script');s.textContent=scripts[i].textContent;document.body.appendChild(s);} }catch(_){ }\
-                    if(msg.swap==='outline'){el.outerHTML=html;}else if(msg.swap==='append'){el.insertAdjacentHTML('beforeend',html);}else if(msg.swap==='prepend'){el.insertAdjacentHTML('afterbegin',html);}\
+                    if(msg.swap==='outline'){el.outerHTML=html;}else if(msg.swap==='append'){el.insertAdjacentHTML('afterend',html);}else if(msg.swap==='prepend'){el.insertAdjacentHTML('afterbegin',html);}\
                     else{el.innerHTML=html;}}catch(_){}}\
-                    function connect(d){setTimeout(function(){ws=new WebSocket(url);ws.onopen=function(){hide();try{ws.send(JSON.stringify({type:'ping'}));}catch(_){}};\
+                    function connect(d){setTimeout(function(){var s=getSession();var url=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/';\
+                    if(s)url+='?s='+encodeURIComponent(s);ws=new WebSocket(url);\
+                    ws.onopen=function(){hide();try{ws.send(JSON.stringify({type:'ping'}));}catch(_){}};\
                     ws.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m.type==='patch'){handlePatch(m);}else if(m.type==='ping'){try{ws.send(JSON.stringify({type:'pong'}));}catch(_){}}}catch(_){}};\
                     ws.onerror=function(){try{ws.close();}catch(_){}};ws.onclose=function(){show();connect(Math.min((d||250)*2,5000));};},d||0);}\
                     var ws; if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){connect(0);});}else{connect(0);}\
                     }catch(_){}})();""";
             app.HTMLHead.add("<script>" + wsBoot + "</script>");
+            app.HTMLHead.add(
+                    "<style>.jsui-offline>*:not([id=jsui_offline_banner]){filter:blur(4px);pointer-events:none;}</style>");
             Server server = new Server(app, http);
             server.start();
             return server;
@@ -252,7 +259,7 @@ public final class Server implements AutoCloseable {
 
                 String upgrade = headers.getOrDefault("upgrade", "");
                 if ("websocket".equalsIgnoreCase(upgrade)) {
-                    handleWebSocket(socket, headers, rawIn);
+                    handleWebSocket(socket, headers, rawIn, queryString);
                     return;
                 }
 
@@ -343,24 +350,33 @@ public final class Server implements AutoCloseable {
             }
         }
 
-        private void handleWebSocket(Socket socket, Map<String, String> headers, InputStream in) throws IOException {
+        private void handleWebSocket(Socket socket, Map<String, String> headers, InputStream in, String queryString)
+                throws IOException {
             OutputStream out = socket.getOutputStream();
             String key = headers.get("sec-websocket-key");
             if (key == null || key.isEmpty()) {
                 return;
             }
-            String cookieHeader = headers.getOrDefault("cookie", "");
             String sessionId = null;
-            if (!cookieHeader.isEmpty()) {
-                String[] cookies = cookieHeader.split(";\\s*");
-                for (String cookie : cookies) {
-                    int idx = cookie.indexOf('=');
-                    if (idx > 0) {
-                        String name = cookie.substring(0, idx).trim();
-                        String value = cookie.substring(idx + 1).trim();
-                        if (SESSION_COOKIE.equals(name)) {
-                            sessionId = value;
-                            break;
+            // Try query parameter first
+            if (!queryString.isEmpty()) {
+                Map<String, String> query = parseQuery(queryString);
+                sessionId = query.get("s");
+            }
+            // Fall back to cookie
+            if (sessionId == null || sessionId.isEmpty()) {
+                String cookieHeader = headers.getOrDefault("cookie", "");
+                if (!cookieHeader.isEmpty()) {
+                    String[] cookies = cookieHeader.split(";\\s*");
+                    for (String cookie : cookies) {
+                        int idx = cookie.indexOf('=');
+                        if (idx > 0) {
+                            String name = cookie.substring(0, idx).trim();
+                            String value = cookie.substring(idx + 1).trim();
+                            if (SESSION_COOKIE.equals(name)) {
+                                sessionId = value;
+                                break;
+                            }
                         }
                     }
                 }

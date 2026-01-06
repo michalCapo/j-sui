@@ -54,7 +54,7 @@ public final class TablePage {
     }
 
     private static String card(String title, String body) {
-        return ui.div("bg-white rounded shadow p-4 border border-gray-200 overflow-hidden").render(
+        return ui.div("bg-white rounded shadow p-4 border overflow-hidden").render(
                 ui.div("text-lg font-bold").render(title),
                 body);
     }

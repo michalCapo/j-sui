@@ -94,7 +94,7 @@ public final class App {
                     """
                             <script>(function(){function apply(mode){try{localStorage.setItem('theme',mode);}catch(e){}var root=document.documentElement;\
                             var eff=(mode==='system')?((window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'):mode;\
-                            if(eff==='dark'){root.classList.add('dark');}else{root.classList.remove('dark');}};window.setTheme=apply;\
+                            if(eff==='dark'){root.classList.add('dark');}else{root.classList.remove('dark');}}window.setTheme=apply;\
                             try{apply(localStorage.getItem('theme')||'system');}catch(_){apply('light');}})();</script>""");
             HTMLHead.add(
                     """

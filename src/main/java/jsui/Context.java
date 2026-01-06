@@ -103,7 +103,7 @@ public final class Context {
         String tgt = action.target != null ? action.target.id : "";
         String normalizedAs = as != null ? as : "";
         String js = """
-                (function(e){try{if(window.__post){return __post('%s','%s','%s','%s',e);} }catch(_){ } return false;})(event)"""
+                try{if(event&&event.preventDefault)event.preventDefault();}catch(_){}return window.__post?__post('%s','%s','%s','%s',event):false;"""
                 .formatted(normalizedAs, path, swap, tgt);
         return ui.Normalize(js);
     }
@@ -380,7 +380,7 @@ public final class Context {
         String normalizedFilename = ui.Normalize(filename);
         String js = """
                 (function(){var a=document.createElement('a');a.href='%s';a.download='%s';document.body.appendChild(a);a.click();\
-                setTimeout(function(){try{document.body.removeChild(a);}catch(_){}} ,0);} )();"""
+                setTimeout(function(){try{document.body.removeChild(a);}catch(_){}},0);})();"""
                 .formatted(normalizedHref, normalizedFilename);
         append.add(ui.Script(js));
     }
@@ -389,11 +389,12 @@ public final class Context {
         String safe = ui.Normalize(html);
         String normalizedId = ui.Normalize(id);
         String s = """
-                (function(){var el=document.getElementById('%s'); if(!el) return;var h="%s";switch('%s'){\
-                case 'outline': el.outerHTML=h; break;\
-                case 'append': el.insertAdjacentHTML('beforeend', h); break;\
-                case 'prepend': el.insertAdjacentHTML('afterbegin', h); break;\
-                default: el.innerHTML=h; } })();""".formatted(normalizedId, safe, swap);
+                (function(){var el=document.getElementById('%s');if(!el)return;var h="%s";switch('%s'){\
+                case 'outline':el.outerHTML=h;break;\
+                case 'append':el.insertAdjacentHTML('beforeend',h);break;\
+                case 'prepend':el.insertAdjacentHTML('afterbegin',h);break;\
+                default:el.innerHTML=h;}})();"""
+                .formatted(normalizedId, safe, swap);
         return ui.Script(s);
     }
 
@@ -406,7 +407,7 @@ public final class Context {
         String escapedColor = escapeJs(color != null ? color : "");
         String script = ui
                 .Script("""
-                        (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
+                        (function(){try{var box=document.getElementById('__messages__');if(!box){box=document.createElement('div');box.id='__messages__';\
                         box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
                         var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
                         n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\
@@ -426,7 +427,7 @@ public final class Context {
         String escapedMessage = escapeJs(message != null ? message : "");
         String script = ui
                 .Script("""
-                        (function(){try{var box=document.getElementById('__messages__');if(box==null){box=document.createElement('div');box.id='__messages__';\
+                        (function(){try{var box=document.getElementById('__messages__');if(!box){box=document.createElement('div');box.id='__messages__';\
                         box.style.position='fixed';box.style.top='0';box.style.right='0';box.style.padding='8px';box.style.zIndex='9999';box.style.pointerEvents='none';document.body.appendChild(box);}\
                         var n=document.createElement('div');n.style.display='flex';n.style.alignItems='center';n.style.gap='10px';n.style.padding='12px 16px';\
                         n.style.margin='8px';n.style.borderRadius='12px';n.style.minHeight='44px';n.style.minWidth='340px';n.style.maxWidth='340px';\

@@ -90,7 +90,7 @@ public final class ButtonPage {
     }
 
     private static String card(String title, String body) {
-        return ui.div("bg-white p-4 rounded-lg shadow flex flex-col gap-3").render(
+        return ui.div("bg-white p-4 rounded-lg shadow flex flex-col gap-3 border").render(
                 ui.div("text-sm font-bold text-gray-700").render(title),
                 body);
     }

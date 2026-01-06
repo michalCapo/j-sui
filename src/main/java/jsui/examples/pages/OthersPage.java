@@ -18,7 +18,7 @@ public final class OthersPage {
 
     private static String simpleCard(String title, String body) {
         return ui.div("flex flex-col gap-3").render(
-                ui.div("text-xl font-bold border-b pb-2").render(title),
+                ui.div("text-xl font-bold pb-2").render(title),
                 body);
     }
 

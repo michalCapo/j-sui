@@ -9,7 +9,7 @@ public final class CaptchaPage {
                 ui.div("text-3xl font-bold").render("CAPTCHA Component Examples"),
                 ui.div("text-gray-600")
                         .render("Demonstrates the reusable CAPTCHA component with server-side validation helpers."),
-                ui.div("bg-white p-4 rounded-lg shadow-md").render(
+                ui.div("bg-white p-4 rounded-lg shadow-md border").render(
                         ui.div("flex flex-wrap gap-4").render(
                                 ui.div("").render(
                                         ui.div("text-lg font-bold mb-4").render("CAPTCHA v2 Component"),

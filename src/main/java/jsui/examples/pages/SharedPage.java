@@ -51,7 +51,7 @@ public final class SharedPage {
 
         public String render(Context ctx) {
             return ui.form("flex flex-col gap-4", target.id(),
-                    ctx.Submit(onSubmit).Replace(target.id())).render(
+                    ctx.Submit(this.onSubmit).Replace(target.id())).render(
                             ui.div("").render(
                                     ui.div("text-gray-600 text-sm").render("Title"),
                                     ui.IText("Title", this).Class("w-full").Placeholder("Title").Render("")),
