@@ -255,8 +255,33 @@ public final class Context {
                     if (app != null && app.currentSessionGeneration(sessionID) != pageGeneration) {
                         return;
                     }
-                    Patch(target, result);
+                    // Retry sending the patch until WebSocket is connected or thread is interrupted
+                    int maxRetries = 50; // Max 5 seconds (50 * 100ms)
+                    int retryCount = 0;
+                    boolean sent = false;
+                    while (!sent && retryCount < maxRetries && !Thread.currentThread().isInterrupted()) {
+                        if (patchSender != null) {
+                            String swap = target.swap != null ? target.swap.name() : ui.Swap.inline.name();
+                            String json = "{\"type\":\"patch\",\"id\":\"%s\",\"swap\":\"%s\",\"html\":\"%s\"}"
+                                    .formatted(ui.Normalize(target.id), swap, ui.EscapeJson(result));
+                            try {
+                                patchSender.send(sessionID, json);
+                                sent = true;
+                            } catch (Exception ex) {
+                                // WebSocket not connected yet, retry after delay
+                                retryCount++;
+                                if (retryCount < maxRetries) {
+                                    Thread.sleep(100);
+                                }
+                            }
+                        } else {
+                            // No patch sender available, give up
+                            break;
+                        }
+                    }
                 }
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
             } catch (Exception ignored) {
             }
         }, "jsui-defer");
@@ -293,8 +318,32 @@ public final class Context {
                         break;
                     }
                     String html = job.handle(this);
-                    if (html != null)
-                        Patch(target, html);
+                    if (html != null) {
+                        // Retry sending the patch until WebSocket is connected or thread is interrupted
+                        int maxRetries = 50; // Max 5 seconds (50 * 100ms)
+                        int retryCount = 0;
+                        boolean sent = false;
+                        while (!sent && retryCount < maxRetries && !Thread.currentThread().isInterrupted()) {
+                            if (patchSender != null) {
+                                String swap = target.swap != null ? target.swap.name() : ui.Swap.inline.name();
+                                String json = "{\"type\":\"patch\",\"id\":\"%s\",\"swap\":\"%s\",\"html\":\"%s\"}"
+                                        .formatted(ui.Normalize(target.id), swap, ui.EscapeJson(html));
+                                try {
+                                    patchSender.send(sessionID, json);
+                                    sent = true;
+                                } catch (Exception ex) {
+                                    // WebSocket not connected yet, retry after delay
+                                    retryCount++;
+                                    if (retryCount < maxRetries) {
+                                        Thread.sleep(100);
+                                    }
+                                }
+                            } else {
+                                // No patch sender available, give up
+                                break;
+                            }
+                        }
+                    }
                     Thread.sleep(delay);
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
@@ -340,8 +389,32 @@ public final class Context {
                     return;
                 }
                 String html = job.handle(this);
-                if (html != null)
-                    Patch(target, html);
+                if (html != null) {
+                    // Retry sending the patch until WebSocket is connected or thread is interrupted
+                    int maxRetries = 50; // Max 5 seconds (50 * 100ms)
+                    int retryCount = 0;
+                    boolean sent = false;
+                    while (!sent && retryCount < maxRetries && !Thread.currentThread().isInterrupted()) {
+                        if (patchSender != null) {
+                            String swap = target.swap != null ? target.swap.name() : ui.Swap.inline.name();
+                            String json = "{\"type\":\"patch\",\"id\":\"%s\",\"swap\":\"%s\",\"html\":\"%s\"}"
+                                    .formatted(ui.Normalize(target.id), swap, ui.EscapeJson(html));
+                            try {
+                                patchSender.send(sessionID, json);
+                                sent = true;
+                            } catch (Exception ex) {
+                                // WebSocket not connected yet, retry after delay
+                                retryCount++;
+                                if (retryCount < maxRetries) {
+                                    Thread.sleep(100);
+                                }
+                            }
+                        } else {
+                            // No patch sender available, give up
+                            break;
+                        }
+                    }
+                }
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
             } catch (Exception ignored) {
