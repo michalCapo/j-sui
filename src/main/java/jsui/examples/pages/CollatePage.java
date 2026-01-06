@@ -48,7 +48,7 @@ public final class CollatePage {
                 ui.div("ml-2").render(
                         ui.Button()
                                 .Class("w-20 text-center px-2 py-1 rounded")
-                                .Color(r.Active ? ui.Green : ui.Gray)
+                                .Color(r.Active ? ui.Green : " bg-gray-800 text-white")
                                 .Render(r.Active ? "Active" : "Inactive")));
     }
 

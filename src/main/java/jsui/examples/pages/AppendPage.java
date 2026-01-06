@@ -17,7 +17,9 @@ public final class AppendPage {
                         ui.Button().Color(ui.Purple).Class("rounded")
                                 .Click(ctx.Call(AppendPage::doAppend).Append(target.id()))
                                 .Render("Append")),
-                ui.div("bg-white p-6 rounded-lg shadow min-h-20 space-y-2", target.id()).render());
+                ui.div("bg-white p-6 rounded-lg shadow min-h-20 space-y-2", target.id()).render(
+                        ui.div("text-gray-600 dark:text-gray-400")
+                                .render("Demonstrates appending and prepending items to a container.")));
     }
 
     public static String doAppend(Context ctx) {

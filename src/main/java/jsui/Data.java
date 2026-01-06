@@ -452,7 +452,7 @@ public final class Data {
             String color = ui.GrayOutline;
             if (order.startsWith(field + " ") || order.equals(field)) {
                 direction = order.contains("asc") ? "asc" : "desc";
-                color = ui.Purple;
+                color = ui.PurpleOutline;
             }
             String reverse = "desc";
             if ("desc".equals(direction)) {
@@ -518,7 +518,7 @@ public final class Data {
         if (state.ExcelFields != null && !state.ExcelFields.isEmpty()) {
             String excel = new ui.Button()
                     .Color(ui.Blue)
-                    .Class("rounded-lg shadow px-4 h-12 bg-white text-blue-700 flex items-center gap-2")
+                    .Class("rounded-lg shadow px-4 h-12 flex items-center gap-2")
                     .Click(ctx.Call(state.ActionExcel).None())
                     .Render(ui.IconLeft("fa fa-download", "XLS"));
             children.add(excel);
@@ -526,8 +526,7 @@ public final class Data {
 
         if (state.FilterFields != null && !state.FilterFields.isEmpty()) {
             String toggle = new ui.Button()
-                    .Submit()
-                    .Class("rounded-r-lg shadow bg-white h-12 px-4 flex items-center gap-2")
+                    .Class("rounded-r-lg shadow h-12 px-4 flex items-center gap-2")
                     .Color(ui.Blue)
                     .Click("var el=document.getElementById('" + state.TargetFilter.id()
                             + "'); if(el){el.classList.toggle('hidden');}")
@@ -678,7 +677,6 @@ public final class Data {
                 .Submit()
                 .Class("bg-white rounded-l h-10 px-4")
                 .Color(ui.PurpleOutline)
-                .Disabled(size == 0 || size <= Math.max(1, result.Query != null ? result.Query.Limit : 10))
                 .Render(ui.Icon("fa fa-fw fa-undo")));
         String resetForm = ui.form("inline-flex", ctx.Submit(state.ActionReset).Replace(state.Target.id()))
                 .render(resetChildren.toArray(new String[0]));
