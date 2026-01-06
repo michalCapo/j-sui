@@ -118,7 +118,8 @@ public final class Server implements AutoCloseable {
                     shutdownTimeout);
             http.setPatchSender((sessionId, message) -> http.sendToSession(sessionId, message));
             final String wsBoot = """
-                    (function(){try{var bannerId='jsui_offline_banner';var wasDisconnected=false;\
+                    (function(){if(window.__jsuiBootLoaded)return;try{window.__jsuiBootLoaded=true;\
+                    var bannerId='jsui_offline_banner';var wasDisconnected=false;\
                     function getSession(){try{var ca=document.cookie.split(';');for(var i=0;i<ca.length;i++){var c=ca[i];while(c.charAt(0)==' ')c=c.substring(1);\
                     if(c.indexOf('jsui_session=')===0)return c.substring('jsui_session='.length,c.length);}}catch(_){}return '';}\
                     function show(){wasDisconnected=true;var el=document.getElementById(bannerId);if(!el){el=document.createElement('div');el.id=bannerId;el.className='fixed top-3 left-3 z-50';\

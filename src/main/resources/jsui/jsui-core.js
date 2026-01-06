@@ -151,6 +151,30 @@
         }
     };
 
+    // POST with serialized data
+    window.__postData = function (path, swap, id, data, e) {
+        try {
+            if (e) {
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            }
+            var opts = {
+                method: 'POST',
+                headers: {'content-type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                body: data || ''
+            };
+            fetch(path, opts)
+                .then(function (r) {return r.text();})
+                .then(function (t) {__applySwap(id, swap, t);})
+                .catch(function (err) {console.error('__postData fetch error:', err);});
+            return false;
+        } catch (err) {
+            console.error('__postData error:', err);
+            return false;
+        }
+    };
+
     // Loading overlay
     var __loader = (function () {
         var S = {count: 0, t: 0, el: null};

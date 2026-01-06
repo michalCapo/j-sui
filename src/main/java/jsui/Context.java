@@ -102,10 +102,62 @@ public final class Context {
             path = "/__not_registered";
         String tgt = action.target != null ? action.target.id : "";
         String normalizedAs = as != null ? as : "";
-        String js = """
-                try{if(event&&event.preventDefault)event.preventDefault();}catch(_){}return window.__post?__post('%s','%s','%s','%s',event):false;"""
-                .formatted(normalizedAs, path, swap, tgt);
-        return ui.Normalize(js);
+
+        // Serialize values if provided and not using FORM mode
+        String serializedData = "";
+        if (action.values != null && action.values.length > 0 && !"FORM".equals(normalizedAs)) {
+            serializedData = serializeValues(action.values);
+        }
+
+        if (!serializedData.isEmpty()) {
+            String js = """
+                    try{if(event&&event.preventDefault)event.preventDefault();}catch(_){}return window.__postData?__postData('%s','%s','%s','%s',event):false;"""
+                    .formatted(path, swap, tgt, ui.EscapeJson(serializedData));
+            return ui.Normalize(js);
+        } else {
+            String js = """
+                    try{if(event&&event.preventDefault)event.preventDefault();}catch(_){}return window.__post?__post('%s','%s','%s','%s',event):false;"""
+                    .formatted(normalizedAs, path, swap, tgt);
+            return ui.Normalize(js);
+        }
+    }
+
+    private String serializeValues(Object[] values) {
+        if (values == null || values.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Object value : values) {
+            if (value == null) {
+                continue;
+            }
+            // Use reflection to serialize object fields
+            try {
+                Field[] fields = value.getClass().getDeclaredFields();
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                    String fieldName = field.getName();
+                    Object fieldValue = field.get(value);
+                    if (fieldValue != null) {
+                        if (sb.length() > 0) {
+                            sb.append("&");
+                        }
+                        sb.append(urlEncode(fieldName)).append("=").append(urlEncode(String.valueOf(fieldValue)));
+                    }
+                }
+            } catch (Exception ex) {
+                // Ignore serialization errors
+            }
+        }
+        return sb.toString();
+    }
+
+    private String urlEncode(String value) {
+        try {
+            return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
+        } catch (Exception ex) {
+            return value;
+        }
     }
 
     public CallBuilder Call(Callable method, Object... values) {

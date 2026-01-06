@@ -19,11 +19,13 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test for ctx.Defer functionality.
  *
- * Tests that ctx.Defer correctly executes background tasks and patches DOM elements.
+ * Tests that ctx.Defer correctly executes background tasks and patches DOM
+ * elements.
  *
  * Prerequisites:
  * 1. Install Playwright browsers:
- *    mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install"
+ * mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D
+ * exec.args="install"
  * 2. Run tests: mvn test -Dtest=DeferTest
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -36,6 +38,7 @@ class DeferTest {
     private static Browser browser;
     private BrowserContext context;
     private Page page;
+    private static ui.Target target = ui.Target();
 
     @BeforeAll
     static void startServerAndBrowser() throws IOException, InterruptedException {
@@ -43,24 +46,26 @@ class DeferTest {
         App app = new App("en");
         app.debug(true);
 
-        // Create a test page that demonstrates Defer functionality
         app.Page("/defer-test", ctx -> {
-            ui.Target target = ui.Target();
 
             // Defer should execute in background and patch the target
             ctx.Defer(target.Replace, deferredCtx -> {
                 try {
                     // Simulate some work
-                    Thread.sleep(500);
+                    Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+                // Use System.err to ensure visiblity in test output (stderr is captured by most
+                // runners)
                 return ui.div("bg-green-100 p-4 rounded border-2 border-green-500")
                         .render(
                                 ui.div("text-green-800 font-bold").render("Deferred Task Complete!"),
-                                ui.div("text-green-600").render("This content was delivered via ctx.Defer after 500ms"));
+                                ui.div("text-green-600")
+                                        .render("This content was delivered via ctx.Defer after 500ms"));
             });
 
+            // Use System.err for immediate test output visibility
             return app.HTML("Defer Test", "bg-gray-100 min-h-screen p-8",
                     ui.div("max-w-2xl mx-auto space-y-6").render(
                             ui.div("text-3xl font-bold mb-4").render("ctx.Defer Test"),
@@ -68,7 +73,8 @@ class DeferTest {
                                     ui.div("mb-4").render(
                                             ui.div("text-lg font-semibold mb-2").render("Target Element:"),
                                             ui.div("bg-gray-50 p-4 rounded border", target.id())
-                                                    .render(ui.div("text-gray-600").render("Initial content - wait for deferred update...")))),
+                                                    .render(ui.div("text-gray-600")
+                                                            .render("Initial content - wait for deferred update...")))),
                             ui.div("bg-blue-50 p-4 rounded border border-blue-200").render(
                                     ui.div("text-blue-800 font-semibold").render("About this test"),
                                     ui.div("text-blue-600 text-sm mt-2")
@@ -147,6 +153,10 @@ class DeferTest {
         // Verify page title exists (not checking deferred content)
         var title = page.locator("div:has-text('ctx.Defer Test')");
         assertTrue(title.count() > 0, "Page title should exist");
+
+        // var initial = page.locator("div:has-text('Initial content')");
+        // assertTrue(initial.count() > 0, "Initial body should contain 'initial
+        // state'");
     }
 
     @Test
@@ -163,7 +173,8 @@ class DeferTest {
             // Ignore
         }
 
-        // Wait for the deferred content to appear (should happen within ~500ms + network latency)
+        // Wait for the deferred content to appear (should happen within ~500ms +
+        // network latency)
         // Using a longer timeout to account for the defer delay
         try {
             page.waitForSelector("div:has-text('Deferred Task Complete!')",

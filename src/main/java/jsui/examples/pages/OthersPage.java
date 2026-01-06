@@ -147,7 +147,7 @@ public final class OthersPage {
                     ui.div("text-gray-600")
                             .render("This content was rendered asynchronously and delivered via live patch.")));
 
-            return ui.div("space-y-4", target.id()).render(
+            return ui.div("space-y-4").render(
                     target.Skeleton(ui.SkeletonType.component));
         }
     }
